@@ -1,0 +1,7 @@
+<library path="lib/libturtlesine">
+	<class name="task1_pkg/TurtleSine" type="task1_pkg::TurtleSine" base_class_type="nodelet::Nodelet">
+		<description>
+			This is my nodelet.
+		</description>
+	</class>
+</library>
