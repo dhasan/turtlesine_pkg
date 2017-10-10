@@ -112,7 +112,7 @@ namespace task1_pkg {
 	void TurtleSine::timerCallback(TurtleSine *obj, double l, double a)
 	{
 		geometry_msgs::Twist twist;
-		static int count = 0;
+		static auto count = 0;
 		twist.linear.x = l;
 		twist.linear.y = 0;
 		twist.linear.z = 0;
@@ -127,12 +127,12 @@ namespace task1_pkg {
 	
 	  	obj->pubsine.publish(twist);
 	
-	  	obj->poseCalculate(twist);
+	  	obj->poseCalculate(twist, count);
 	  
 		++count;
 	}
 	
-	void TurtleSine::poseCalculate(const geometry_msgs::Twist &twist){
+	void TurtleSine::poseCalculate(const geometry_msgs::Twist &twist, unsigned int count){
 	
 		/* Odometry formula*/
 		nav_msgs::Odometry odom;
@@ -159,6 +159,7 @@ namespace task1_pkg {
 
 		odom.header.stamp = ros::Time::now();
 		odom.child_frame_id = turtlename;
+		odom.header.seq = count;
 	
 		odom.pose.pose.position.x = lastpose.at(POSE_X);
 		odom.pose.pose.position.y = lastpose.at(POSE_Y);

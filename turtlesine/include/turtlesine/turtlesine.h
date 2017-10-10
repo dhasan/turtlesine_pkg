@@ -44,7 +44,7 @@ namespace task1_pkg {
 		static void timerCallback(TurtleSine *obj,double l, double a);
 		static void simWait(TurtleSine *obj);
 
-		void poseCalculate(const geometry_msgs::Twist &twist);
+		void poseCalculate(const geometry_msgs::Twist &twist, unsigned int count);
 
 
 
