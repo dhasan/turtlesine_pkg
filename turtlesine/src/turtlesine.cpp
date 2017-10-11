@@ -47,7 +47,7 @@ namespace task1_pkg {
 	}
 	
 
-	TurtleSine::TurtleSine() : nh(getNodeHandle()){}
+	TurtleSine::TurtleSine() : nh(getPrivateNodeHandle()){}
 	
 	TurtleSine::TurtleSine(ros::NodeHandle &n) : nh(n), pubsine(nh.advertise<geometry_msgs::Twist>("cmd_vel", 1000)),
 		clienttelep(nh.serviceClient<turtlesim::TeleportAbsolute>("teleport_absolute")), 
@@ -89,22 +89,21 @@ namespace task1_pkg {
 		telep.request.y = ty;
 		telep.request.theta = ttheta;
 
-		
+		ros::service::waitForService("teleport_absolute", 150);
   		if (turtlename.compare("turtle1")){
 			//Check if we have the turtle, if not create it first before teleport (in all other case except turtle1)
 			if (!ros::service::exists("teleport_absolute", true)){
 				turtlesim::Spawn spawn_turtle;
 			
-				spawn_turtle.request.x = INITIAL_X;
-				spawn_turtle.request.y = INITIAL_Y;
-				spawn_turtle.request.theta = 0;
+				spawn_turtle.request.x = tx;
+				spawn_turtle.request.y = ty;
+				spawn_turtle.request.theta = ttheta;
 				spawn_turtle.request.name = turtlename;
 				spawn.call(spawn_turtle);
 				std::cout << "spawn NAMESPACE: "<< ns<<" NAME: " <<turtlename<<std::endl;
 			}
-		}
-
-		clienttelep.call(telep);
+		}else
+			clienttelep.call(telep);
 	
 	}
 	
@@ -182,7 +181,7 @@ namespace task1_pkg {
 		NODELET_DEBUG("Initializing nodelet...");
 		pubsine = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1000);
 		clienttelep = nh.serviceClient<turtlesim::TeleportAbsolute>("teleport_absolute"); 
-		spawn = nh.serviceClient<turtlesim::Spawn>("spawn"); 
+		spawn = nh.serviceClient<turtlesim::Spawn>("/task1/sim/spawn"); 
 		timer = nh.createTimer(ros::Duration(TIME_DT), boost::bind(&TurtleSine::timerCallback, this, 4.44, 4.44));
 		odompub = nh.advertise<nav_msgs::Odometry>("odometry", 1000);
 		kill = nh.serviceClient<turtlesim::Kill>("/task1/sim/kill");
