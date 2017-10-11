@@ -34,7 +34,7 @@ namespace task1_pkg {
 			ROS_ERROR("Unable to find turtlesim service spawn");
 			exit(0);
 		}else
-			obj->cv.notify_one();
+			obj->cv.notify_all();
 	}
 
 	TurtleSine::~TurtleSine(){
@@ -69,8 +69,8 @@ namespace task1_pkg {
 		nh.getParam("initial_theta", ttheta);
 
 		auto ns = ros::this_node::getNamespace();
-    	boost::tokenizer<boost::char_separator<char>> tokens(ns, boost::char_separator<char>("/"));
-    	std::vector<std::string> result(tokens.begin(), tokens.end());
+		boost::tokenizer<boost::char_separator<char>> tokens(ns, boost::char_separator<char>("/"));
+		std::vector<std::string> result(tokens.begin(), tokens.end());
 
     	//TODO: empty vector check
 		turtlename = result.at(result.size() - 1);
@@ -80,7 +80,6 @@ namespace task1_pkg {
 			Since both nodes are starting at the same from launcher sometimes turtlesine node starts before
 			turtlesim_node, so we need to wait until turtlesim_node appear to use spawn service
 		*/
-
 		thread = std::thread(TurtleSine::simWait, this);
 		std::unique_lock<std::mutex> lck(mtx);
   		cv.wait(lck);
@@ -147,9 +146,9 @@ namespace task1_pkg {
 		double delta_y = (vx * sin(thi) + vy * cos(thi)) * dt;
 		double delta_th = th * dt;
 	
-		lastpose.at(POSE_X) += (float)delta_x;
-		lastpose.at(POSE_Y) += (float)delta_y;
-		lastpose.at(POSE_THETA) += (float)delta_th;
+		lastpose.at(POSE_X) += delta_x;
+		lastpose.at(POSE_Y) += delta_y;
+		lastpose.at(POSE_THETA) += delta_th;
 	
 		ROS_INFO("Calculated pose x y: %f %f", lastpose.at(0), lastpose.at(1));
 	
