@@ -13,7 +13,7 @@
         <node pkg="turtlesine" name="turtlesine" type="turtlesine">
             <param name="initial_x" value="0.0" type="double" />
             <param name="initial_y" value="5.544445" type="double" />
-            <param name="initial_theta" value="1.7" type="double" />
+            <param name="initial_theta" value="0" type="double" />
         </node>        
     </group>
 

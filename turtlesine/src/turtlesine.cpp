@@ -11,6 +11,8 @@
 #include "nodelet/loader.h"
 #include <turtlesim/Kill.h>
 #include <signal.h>
+#include <tf/transform_broadcaster.h>
+#include <turtlesim/Pose.h>
 
 PLUGINLIB_EXPORT_CLASS(task1_pkg::TurtleSine, nodelet::Nodelet)
 
@@ -19,22 +21,18 @@ namespace task1_pkg {
 	const std::string TurtleSine::node_name = "turtlesine";
 
 	void TurtleSine::simWait(TurtleSine *obj){
-		auto cnt = RETRYS; //retrys
+		
 
 		std::unique_lock<std::mutex> lck(obj->mtx);
-		while (!ros::service::exists("/task1/sim/spawn", true) && cnt)
+		while (!ros::service::exists("/task1/sim/spawn", true))
 		{
 			
 			ROS_WARN("Wait for turtlesim_node.");
 			ros::service::waitForService("/task1/sim/spawn", 15);
-			--cnt;
+			
 		}
 		
-		if (!cnt){
-			ROS_ERROR("Unable to find turtlesim service spawn");
-			exit(0);
-		}else
-			obj->cv.notify_all();
+		obj->cv.notify_all();
 	}
 
 	TurtleSine::~TurtleSine(){
@@ -44,6 +42,22 @@ namespace task1_pkg {
 		kill.call(kill_turtle);
 		ROS_ERROR("KILLING THE TURTLE");
 
+	}
+
+	TurtleSine::PoseListener::PoseListener(TurtleSine *p) : parent(p){}
+
+	void TurtleSine::PoseListener::poseCallback(const turtlesim::PoseConstPtr& msg){
+		static tf::TransformBroadcaster br;
+  		tf::Transform transform;
+
+  		geometry_msgs::Twist twist;
+  		parent->poseCalculate(twist);
+  		
+  		transform.setOrigin( tf::Vector3(msg->x, msg->y, 0.0) );
+  		tf::Quaternion q;
+  		q.setRPY(0, 0, msg->theta);
+  		transform.setRotation(q);
+  		br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", parent->turtlename + std::string("_odometry")));
 	}
 	
 
@@ -55,6 +69,8 @@ namespace task1_pkg {
 		timer(nh.createTimer(ros::Duration(TIME_DT), boost::bind(&TurtleSine::timerCallback, this, 4.44, 4.44))),
 		odompub(nh.advertise<nav_msgs::Odometry>("odometry", 1000)),
 		kill(nh.serviceClient<turtlesim::Kill>("/task1/sim/kill")),
+		poselistener(this),
+		posesub(nh.subscribe("pose", 10, &PoseListener::poseCallback, &poselistener)),
 		lastpose(3)
 		
 	{
@@ -125,12 +141,12 @@ namespace task1_pkg {
 	
 	  	obj->pubsine.publish(twist);
 	
-	  	obj->poseCalculate(twist, count);
+	
 	  
 		++count;
 	}
 	
-	void TurtleSine::poseCalculate(const geometry_msgs::Twist &twist, unsigned int count){
+	void TurtleSine::poseCalculate(const geometry_msgs::Twist &twist){
 	
 		/* Odometry formula*/
 		nav_msgs::Odometry odom;
@@ -142,8 +158,8 @@ namespace task1_pkg {
 	
 		double thi = lastpose.at(POSE_THETA); //initial angle
 	
-		double delta_x = (vx * cos(thi) - vy * sin(thi)) * dt;
-		double delta_y = (vx * sin(thi) + vy * cos(thi)) * dt;
+		double delta_x = (vy * sin(thi) - vx * cos(thi)) * dt;
+		double delta_y = (vy * cos(thi) + vx * sin(thi)) * dt;
 		double delta_th = th * dt;
 	
 		lastpose.at(POSE_X) += delta_x;
@@ -156,8 +172,10 @@ namespace task1_pkg {
 		tf::Quaternion q = tf::createQuaternionFromRPY(0, 0, lastpose.at(POSE_THETA));
 
 		odom.header.stamp = ros::Time::now();
-		odom.child_frame_id = turtlename;
-		odom.header.seq = count;
+		
+		odom.header.frame_id = turtlename + std::string("_odometry");
+		odom.child_frame_id = turtlename + std::string("_base_link");
+
 	
 		odom.pose.pose.position.x = lastpose.at(POSE_X);
 		odom.pose.pose.position.y = lastpose.at(POSE_Y);

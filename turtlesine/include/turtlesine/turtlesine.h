@@ -4,10 +4,11 @@
 #include "ros/ros.h"
 #include <geometry_msgs/Twist.h>
 #include <nodelet/nodelet.h>
+#include <turtlesim/Pose.h>
 
-#include <thread>             // std::thread
-#include <mutex>              // std::mutex, std::unique_lock
-#include <condition_variable> // std::condition_variable
+#include <thread>             
+#include <mutex>              
+#include <condition_variable> 
 
 #define		POSE_X		(0)
 #define		POSE_Y		(1)
@@ -23,7 +24,24 @@ namespace task1_pkg {
 	class TurtleSine : public nodelet::Nodelet
 	{
 
+
 	private:
+
+		class PoseListener
+		{
+			private:
+				TurtleSine *parent;
+			public:
+  				void poseCallback(const turtlesim::PoseConstPtr& msg);
+  				PoseListener(TurtleSine *p);
+  				PoseListener() = default;
+
+  				PoseListener(const PoseListener &obj) = delete;
+				PoseListener& operator=(PoseListener pl) = delete;
+				PoseListener(PoseListener&&) = delete;
+
+		};
+
 		ros::NodeHandle& nh;
 	
 		ros::Publisher pubsine;
@@ -32,6 +50,8 @@ namespace task1_pkg {
 		ros::Timer timer;
 		ros::Publisher odompub;
 		ros::ServiceClient kill;
+
+		ros::Subscriber posesub;
 		
 		std::vector<float> lastpose;
 		std::string turtlename;
@@ -39,12 +59,15 @@ namespace task1_pkg {
 		std::mutex mtx;
 		std::condition_variable cv;
 		std::thread thread;
+
+		PoseListener poselistener;
 		
 
 		static void timerCallback(TurtleSine *obj,double l, double a);
 		static void simWait(TurtleSine *obj);
 
-		void poseCalculate(const geometry_msgs::Twist &twist, unsigned int count);
+		void poseCalculate(const geometry_msgs::Twist &twist);
+		//void poseCallback(const turtlesim::PoseConstPtr& msg);
 
 
 
@@ -55,10 +78,14 @@ namespace task1_pkg {
 		TurtleSine(ros::NodeHandle &n);
 
 		//Nodelet is using this constructor, so keeping it non-default.....
-		TurtleSine(); 
+		TurtleSine();
+
 
 
 		TurtleSine(const TurtleSine &obj) = delete;
+		TurtleSine& operator=(TurtleSine ts) = delete;
+		TurtleSine(TurtleSine&&) = delete;
+
 		virtual ~TurtleSine();
 	
 	};
