@@ -47,8 +47,7 @@ namespace task1_pkg {
 	TurtleSine::PoseListener::PoseListener(TurtleSine *p) : parent(p){}
 
 	void TurtleSine::PoseListener::poseCallback(const turtlesim::PoseConstPtr& msg){
-		//TODO remove this
-
+		
 		static tf::TransformBroadcaster br;
  		tf::Transform transform;
   		transform.setOrigin( tf::Vector3(msg->x, msg->y, 0.0) );
@@ -85,14 +84,19 @@ namespace task1_pkg {
 		nh.getParam("initial_y", ty);
 		nh.getParam("initial_theta", ttheta);
 
-		auto ns = ros::this_node::getNamespace();
+#if 0
+		
 		boost::tokenizer<boost::char_separator<char>> tokens(ns, boost::char_separator<char>("/"));
 		std::vector<std::string> result(tokens.begin(), tokens.end());
 
     	//TODO: empty vector check
 		turtlename = result.at(result.size() - 1);
 		std::cout << "NAMESPACE : " <<ros::this_node::getNamespace()<< " "<<turtlename<<std::endl;
-	
+#endif	
+		auto ns = ros::this_node::getNamespace();
+		int pos = ns.find_last_of('/');
+  		turtlename = ns.substr(pos + 1);
+
 		/*
 			Since both nodes are starting at the same from launcher sometimes turtlesine node starts before
 			turtlesim_node, so we need to wait until turtlesim_node appear to use spawn service
@@ -120,9 +124,6 @@ namespace task1_pkg {
 			}
 		}else
 			clienttelep.call(telep);
-
-		
-
 	}
 	
 	
@@ -212,7 +213,7 @@ namespace task1_pkg {
 		odom.pose.pose.orientation.w = q[3];
 
 		odom.twist.twist = twist;
-		
+		odompub.publish(odom);
 
   		transform_bs.setOrigin( tf::Vector3(lastpose.at(POSE_X), lastpose.at(POSE_Y), 0.0) );
   		transform_bs.setRotation(q);  		
@@ -221,6 +222,7 @@ namespace task1_pkg {
   		br.sendTransform(tf::StampedTransform(transform_bs, time_now, turtlename + std::string("_odometry"), turtlename + std::string("_base_link")));
 
   		//Initial coordinates
+  		//TOOD add this to constructor as well 
   		transform.setOrigin( tf::Vector3(tx, ty, 0.0) );
   		tf::Quaternion q3;
   		q3.setRPY(0, 0, ttheta);
@@ -228,7 +230,7 @@ namespace task1_pkg {
   		br.sendTransform(tf::StampedTransform(transform, time_now, "world", turtlename + std::string("_odometry")));
 
 
-  		odompub.publish(odom);
+  		
   		dt = time_now.toSec();
   		
 	}
