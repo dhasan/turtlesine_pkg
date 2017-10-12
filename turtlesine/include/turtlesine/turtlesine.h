@@ -17,9 +17,7 @@
 #define		INITIAL_X	(5.544445)
 #define		INITIAL_Y	(5.544445)
 
-#define 	RETRYS 		(50)
-
-#define 	TIME_DT 	(1.0/1.3)
+#define 	TIME_DT 	(1.0/1.0)
 namespace task1_pkg {
 	class TurtleSine : public nodelet::Nodelet
 	{
@@ -33,12 +31,15 @@ namespace task1_pkg {
 				TurtleSine *parent;
 			public:
   				void poseCallback(const turtlesim::PoseConstPtr& msg);
+
   				PoseListener(TurtleSine *p);
   				PoseListener() = default;
-
-  				PoseListener(const PoseListener &obj) = delete;
-				PoseListener& operator=(PoseListener pl) = delete;
-				PoseListener(PoseListener&&) = delete;
+  				 
+  				virtual ~PoseListener() = default;
+  				PoseListener(const PoseListener&) = delete;
+				PoseListener& operator= (const PoseListener&) = delete; //copy assignment operator
+				PoseListener(PoseListener&&) =delete; //move constructor
+				PoseListener& operator=(PoseListener&&) = delete; //move assignment operator
 
 		};
 
@@ -61,9 +62,12 @@ namespace task1_pkg {
 		std::thread thread;
 
 		PoseListener poselistener;
+
+		int count;
+		double dt;
 		
 
-		static void timerCallback(TurtleSine *obj,double l, double a);
+		static void timerCallback(TurtleSine *obj);
 		static void simWait(TurtleSine *obj);
 
 		void poseCalculate(const geometry_msgs::Twist &twist);
@@ -79,14 +83,11 @@ namespace task1_pkg {
 
 		//Nodelet is using this constructor, so keeping it non-default.....
 		TurtleSine();
-
-
-
-		TurtleSine(const TurtleSine &obj) = delete;
-		TurtleSine& operator=(TurtleSine ts) = delete;
-		TurtleSine(TurtleSine&&) = delete;
-
 		virtual ~TurtleSine();
+  		TurtleSine(const TurtleSine&) = delete;
+		TurtleSine& operator= (const TurtleSine&) = delete; //copy assignment operator
+		TurtleSine(TurtleSine&&) = delete; //move constructor
+		TurtleSine& operator=(TurtleSine&&) = delete; //move assignment operator
 	
 	};
 

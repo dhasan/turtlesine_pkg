@@ -24,11 +24,11 @@ namespace task1_pkg {
 		
 
 		std::unique_lock<std::mutex> lck(obj->mtx);
-		while (!ros::service::exists("/task1/sim/spawn", true))
+		while (!ros::service::exists("/sim/spawn", true))
 		{
 			
 			ROS_WARN("Wait for turtlesim_node.");
-			ros::service::waitForService("/task1/sim/spawn", 15);
+			ros::service::waitForService("/sim/spawn", 15);
 			
 		}
 		
@@ -47,17 +47,8 @@ namespace task1_pkg {
 	TurtleSine::PoseListener::PoseListener(TurtleSine *p) : parent(p){}
 
 	void TurtleSine::PoseListener::poseCallback(const turtlesim::PoseConstPtr& msg){
-		static tf::TransformBroadcaster br;
-  		tf::Transform transform;
+		//TODO remove this
 
-  		geometry_msgs::Twist twist;
-  		parent->poseCalculate(twist);
-  		
-  		transform.setOrigin( tf::Vector3(msg->x, msg->y, 0.0) );
-  		tf::Quaternion q;
-  		q.setRPY(0, 0, msg->theta);
-  		transform.setRotation(q);
-  		br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", parent->turtlename + std::string("_odometry")));
 	}
 	
 
@@ -65,16 +56,17 @@ namespace task1_pkg {
 	
 	TurtleSine::TurtleSine(ros::NodeHandle &n) : nh(n), pubsine(nh.advertise<geometry_msgs::Twist>("cmd_vel", 1000)),
 		clienttelep(nh.serviceClient<turtlesim::TeleportAbsolute>("teleport_absolute")), 
-		spawn(nh.serviceClient<turtlesim::Spawn>("/task1/sim/spawn")),
-		timer(nh.createTimer(ros::Duration(TIME_DT), boost::bind(&TurtleSine::timerCallback, this, 4.44, 4.44))),
+		spawn(nh.serviceClient<turtlesim::Spawn>("/sim/spawn")),
+		timer(nh.createTimer(ros::Duration(TIME_DT), boost::bind(&TurtleSine::timerCallback, this))),
 		odompub(nh.advertise<nav_msgs::Odometry>("odometry", 1000)),
-		kill(nh.serviceClient<turtlesim::Kill>("/task1/sim/kill")),
+		kill(nh.serviceClient<turtlesim::Kill>("/sim/kill")),
 		poselistener(this),
 		posesub(nh.subscribe("pose", 10, &PoseListener::poseCallback, &poselistener)),
-		lastpose(3)
+		lastpose(3, .0)
 		
 	{
 		turtlesim::TeleportAbsolute telep;
+
 		
 		/*
 			Apparently params can't be float, only (str|int|double|bool|yaml), so use temporary vars, the other option is yaml with single vector parameter...
@@ -123,43 +115,66 @@ namespace task1_pkg {
 	}
 	
 	
-	void TurtleSine::timerCallback(TurtleSine *obj, double l, double a)
+	void TurtleSine::timerCallback(TurtleSine *obj)
 	{
 		geometry_msgs::Twist twist;
-		static auto count = 0;
-		twist.linear.x = l;
+		
+
+		double as,ls;
+		obj->nh.getParam("a_speed", as);
+		obj->nh.getParam("l_speed", ls);
+
+		twist.linear.x = as;
 		twist.linear.y = 0;
 		twist.linear.z = 0;
 	
 		twist.angular.x = 0;
 		twist.angular.y = 0;
-		twist.angular.z = a;
+		twist.angular.z = ls;
 	
-		if (!(count & 1)){
+		if (!(obj->count & 1)){
 	  		twist.angular.z *= -1;
 	  	}
 	
 	  	obj->pubsine.publish(twist);
-	
+		
+		obj->poseCalculate(twist);
 	
 	  
-		++count;
+		obj->count++;
 	}
 	
 	void TurtleSine::poseCalculate(const geometry_msgs::Twist &twist){
 	
 		/* Odometry formula*/
 		nav_msgs::Odometry odom;
+
+		static tf::TransformBroadcaster br;
+  		tf::Transform transform_bs, transform;
 	
 		double dt = TIME_DT; //time discrete
+		#if 0
+		static double dt = 0;
+		double now =ros::Time::now().toSec();
+
+		if (dt==0){
+			dt = now;
+			return;
+		}
+
+		dt = now - dt;
+		#endif
+
+		std::cout << "TIME: " << dt << std::endl;
+
 		double vx = twist.linear.x;
 		double vy = twist.linear.y; 
 		double th = twist.angular.z;
 	
 		double thi = lastpose.at(POSE_THETA); //initial angle
 	
-		double delta_x = (vy * sin(thi) - vx * cos(thi)) * dt;
-		double delta_y = (vy * cos(thi) + vx * sin(thi)) * dt;
+		double delta_x = (vx * cos(thi) - vy * sin(thi)) * dt;
+		double delta_y = (vx * sin(thi) + vy * cos(thi)) * dt;
 		double delta_th = th * dt;
 	
 		lastpose.at(POSE_X) += delta_x;
@@ -188,8 +203,30 @@ namespace task1_pkg {
 
 		odom.twist.twist = twist;
 	
-		odompub.publish(odom);
-	
+		
+
+
+
+
+  		//transform_bs.setOrigin( tf::Vector3(msg->x, msg->y, 0.0) );
+  		transform_bs.setOrigin( tf::Vector3(lastpose.at(POSE_X), lastpose.at(POSE_Y), 0.0) );
+  		//tf::Quaternion q;
+  		//q.setRPY(0, 0, msg->theta);
+  		//q.setRPY(0, 0, lastpose.at(POSE_THETA));
+  		transform_bs.setRotation(q);
+  		
+  		ros::Time time_now = ros::Time::now();
+
+  		//base_ling against to world is relative from pose coordinates,
+  		br.sendTransform(tf::StampedTransform(transform_bs, time_now, "world", turtlename + std::string("_odometry")));
+  		
+  		//Since turtle is one rigid body, no transformation between baselink and odometry frames for the turtle, coordinates are the same
+  		transform.setOrigin( tf::Vector3(0, 0, 0.0) );
+  		q.setRPY(0, 0,0);
+  		transform.setRotation(q);
+  		br.sendTransform(tf::StampedTransform(transform, time_now, turtlename + std::string("_odometry"), turtlename + std::string("_base_link")));
+  		odompub.publish(odom);
+		//dt = now;
 		
 	}
 	
@@ -198,10 +235,10 @@ namespace task1_pkg {
 		NODELET_DEBUG("Initializing nodelet...");
 		pubsine = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1000);
 		clienttelep = nh.serviceClient<turtlesim::TeleportAbsolute>("teleport_absolute"); 
-		spawn = nh.serviceClient<turtlesim::Spawn>("/task1/sim/spawn"); 
-		timer = nh.createTimer(ros::Duration(TIME_DT), boost::bind(&TurtleSine::timerCallback, this, 4.44, 4.44));
+		spawn = nh.serviceClient<turtlesim::Spawn>("spawn"); 
+		timer = nh.createTimer(ros::Duration(TIME_DT), boost::bind(&TurtleSine::timerCallback, this));
 		odompub = nh.advertise<nav_msgs::Odometry>("odometry", 1000);
-		kill = nh.serviceClient<turtlesim::Kill>("/task1/sim/kill");
+		kill = nh.serviceClient<turtlesim::Kill>("/task1/kill");
 		lastpose.resize(3);
 	}
 
