@@ -13,20 +13,20 @@
     
     <group ns="$(arg ns)/turtle1">    
         <node pkg="turtlesine" name="turtlesine" type="turtlesine">
-            <param name="a_speed" value="1.144" type="double" />
-            <param name="l_speed" value="1.244" type="double" />
+            <param name="a_speed" value="4.44" type="double" />
+            <param name="l_speed" value="4.44" type="double" />
             
-            <param name="initial_x" value="5.0" type="double" />
-            <param name="initial_y" value="5.544445" type="double" />
+            <param name="initial_x" value="2.0" type="double" />
+            <param name="initial_y" value="2.5" type="double" />
             <param name="initial_theta" value="0" type="double" />
         </node>        
     </group>
-
+<!--
     <group ns="$(arg ns)/turtle2">    
         <node pkg="turtlesine" name="turtlesine" type="turtlesine">
-            <param name="a_speed" value="1.144" type="double" />
-            <param name="l_speed" value="1.244" type="double" />
-            <param name="initial_x" value="5.08" type="double" />
+            <param name="a_speed" value="4.44" type="double" />
+            <param name="l_speed" value="4.44" type="double" />
+            <param name="initial_x" value="11.08" type="double" />
             <param name="initial_y" value="5.544445" type="double" />
             <param name="initial_theta" value="4.8523" type="double" />
         </node>        
@@ -34,8 +34,8 @@
 
     <group ns="$(arg ns)/turtle3">    
         <node pkg="turtlesine" name="turtlesine" type="turtlesine">
-            <param name="a_speed" value="1.144" type="double" />
-            <param name="l_speed" value="1.244" type="double" />
+            <param name="a_speed" value="4.44" type="double" />
+            <param name="l_speed" value="4.44" type="double" />
              
             <param name="initial_x" value="5.08" type="double" />
             <param name="initial_y" value="5.544445" type="double" />
@@ -43,7 +43,7 @@
         </node>        
     </group>
 
-
+-->
 <!--
     <node pkg="nodelet" type="nodelet" name="standalone_nodelet"  args="manager" output="screen"/>
     <node pkg="nodelet" type="nodelet" name="TurtleSine" args="load task1_pkg/TurtleSine standalone_nodelet" output="screen">

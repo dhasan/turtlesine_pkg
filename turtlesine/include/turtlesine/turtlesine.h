@@ -14,10 +14,7 @@
 #define		POSE_Y		(1)
 #define		POSE_THETA	(2)
 
-#define		INITIAL_X	(5.544445)
-#define		INITIAL_Y	(5.544445)
-
-#define 	TIME_DT 	(1.0/1.0)
+#define 	TIME_DT 	(1.0/26)
 namespace task1_pkg {
 	class TurtleSine : public nodelet::Nodelet
 	{
@@ -42,6 +39,7 @@ namespace task1_pkg {
 				PoseListener& operator=(PoseListener&&) = delete; //move assignment operator
 
 		};
+		double dt;
 
 		ros::NodeHandle& nh;
 	
@@ -54,7 +52,7 @@ namespace task1_pkg {
 
 		ros::Subscriber posesub;
 		
-		std::vector<float> lastpose;
+		std::vector<double> lastpose;
 		std::string turtlename;
 
 		std::mutex mtx;
@@ -64,7 +62,7 @@ namespace task1_pkg {
 		PoseListener poselistener;
 
 		int count;
-		double dt;
+		
 		
 
 		static void timerCallback(TurtleSine *obj);

@@ -49,12 +49,20 @@ namespace task1_pkg {
 	void TurtleSine::PoseListener::poseCallback(const turtlesim::PoseConstPtr& msg){
 		//TODO remove this
 
+		static tf::TransformBroadcaster br;
+ 		tf::Transform transform;
+  		transform.setOrigin( tf::Vector3(msg->x, msg->y, 0.0) );
+  		tf::Quaternion q;
+  		q.setRPY(0, 0, msg->theta);
+  		transform.setRotation(q);
+  		br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", parent->turtlename+std::string("_pose")));
+
 	}
 	
 
 	TurtleSine::TurtleSine() : nh(getPrivateNodeHandle()){}
 	
-	TurtleSine::TurtleSine(ros::NodeHandle &n) : nh(n), pubsine(nh.advertise<geometry_msgs::Twist>("cmd_vel", 1000)),
+	TurtleSine::TurtleSine(ros::NodeHandle &n) : nh(n) ,dt(ros::Time().toSec()), pubsine(nh.advertise<geometry_msgs::Twist>("cmd_vel", 1000)),
 		clienttelep(nh.serviceClient<turtlesim::TeleportAbsolute>("teleport_absolute")), 
 		spawn(nh.serviceClient<turtlesim::Spawn>("/sim/spawn")),
 		timer(nh.createTimer(ros::Duration(TIME_DT), boost::bind(&TurtleSine::timerCallback, this))),
@@ -66,6 +74,7 @@ namespace task1_pkg {
 		
 	{
 		turtlesim::TeleportAbsolute telep;
+		
 
 		
 		/*
@@ -111,7 +120,9 @@ namespace task1_pkg {
 			}
 		}else
 			clienttelep.call(telep);
-	
+
+		
+
 	}
 	
 	
@@ -132,7 +143,7 @@ namespace task1_pkg {
 		twist.angular.y = 0;
 		twist.angular.z = ls;
 	
-		if (!(obj->count & 1)){
+		if ((obj->count % 80) > 40){
 	  		twist.angular.z *= -1;
 	  	}
 	
@@ -151,20 +162,14 @@ namespace task1_pkg {
 
 		static tf::TransformBroadcaster br;
   		tf::Transform transform_bs, transform;
-	
-		double dt = TIME_DT; //time discrete
-		#if 0
-		static double dt = 0;
-		double now =ros::Time::now().toSec();
-
-		if (dt==0){
-			dt = now;
-			return;
-		}
-
-		dt = now - dt;
-		#endif
-
+  		ros::Time time_now = ros::Time::now();
+  		if (dt==0){
+  			dt = time_now.toSec();
+  			return;
+  		}
+		
+		dt = time_now.toSec() - dt;
+		//dt = TIME_DT;
 		std::cout << "TIME: " << dt << std::endl;
 
 		double vx = twist.linear.x;
@@ -180,13 +185,18 @@ namespace task1_pkg {
 		lastpose.at(POSE_X) += delta_x;
 		lastpose.at(POSE_Y) += delta_y;
 		lastpose.at(POSE_THETA) += delta_th;
+
+		double tx,ty,ttheta;
+		nh.getParam("initial_x", tx);
+		nh.getParam("initial_y", ty);
+		nh.getParam("initial_theta", ttheta);
 	
 		ROS_INFO("Calculated pose x y: %f %f", lastpose.at(0), lastpose.at(1));
 	
 		//q.setEuler(lastpose.at(POSE_THETA), 0, 0);
 		tf::Quaternion q = tf::createQuaternionFromRPY(0, 0, lastpose.at(POSE_THETA));
 
-		odom.header.stamp = ros::Time::now();
+		odom.header.stamp = time_now;
 		
 		odom.header.frame_id = turtlename + std::string("_odometry");
 		odom.child_frame_id = turtlename + std::string("_base_link");
@@ -202,32 +212,25 @@ namespace task1_pkg {
 		odom.pose.pose.orientation.w = q[3];
 
 		odom.twist.twist = twist;
-	
 		
 
-
-
-
-  		//transform_bs.setOrigin( tf::Vector3(msg->x, msg->y, 0.0) );
   		transform_bs.setOrigin( tf::Vector3(lastpose.at(POSE_X), lastpose.at(POSE_Y), 0.0) );
-  		//tf::Quaternion q;
-  		//q.setRPY(0, 0, msg->theta);
-  		//q.setRPY(0, 0, lastpose.at(POSE_THETA));
-  		transform_bs.setRotation(q);
-  		
-  		ros::Time time_now = ros::Time::now();
+  		transform_bs.setRotation(q);  		
 
-  		//base_ling against to world is relative from pose coordinates,
-  		br.sendTransform(tf::StampedTransform(transform_bs, time_now, "world", turtlename + std::string("_odometry")));
-  		
-  		//Since turtle is one rigid body, no transformation between baselink and odometry frames for the turtle, coordinates are the same
-  		transform.setOrigin( tf::Vector3(0, 0, 0.0) );
-  		q.setRPY(0, 0,0);
-  		transform.setRotation(q);
-  		br.sendTransform(tf::StampedTransform(transform, time_now, turtlename + std::string("_odometry"), turtlename + std::string("_base_link")));
+
+  		br.sendTransform(tf::StampedTransform(transform_bs, time_now, turtlename + std::string("_odometry"), turtlename + std::string("_base_link")));
+
+  		//Initial coordinates
+  		transform.setOrigin( tf::Vector3(tx, ty, 0.0) );
+  		tf::Quaternion q3;
+  		q3.setRPY(0, 0, ttheta);
+  		transform.setRotation(q3);
+  		br.sendTransform(tf::StampedTransform(transform, time_now, "world", turtlename + std::string("_odometry")));
+
+
   		odompub.publish(odom);
-		//dt = now;
-		
+  		dt = time_now.toSec();
+  		
 	}
 	
 	void TurtleSine::onInit()
