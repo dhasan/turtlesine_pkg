@@ -13,8 +13,8 @@
     
     <group ns="$(arg ns)/turtle1">    
         <node pkg="turtlesine" name="turtlesine" type="turtlesine">
-            <param name="a_speed" value="0.144" type="double" />
-            <param name="l_speed" value="0.244" type="double" />
+            <param name="a_speed" value="1.144" type="double" />
+            <param name="l_speed" value="1.244" type="double" />
             
             <param name="initial_x" value="5.0" type="double" />
             <param name="initial_y" value="5.544445" type="double" />
@@ -24,8 +24,8 @@
 
     <group ns="$(arg ns)/turtle2">    
         <node pkg="turtlesine" name="turtlesine" type="turtlesine">
-            <param name="a_speed" value="0.144" type="double" />
-            <param name="l_speed" value="0.244" type="double" />
+            <param name="a_speed" value="1.144" type="double" />
+            <param name="l_speed" value="1.244" type="double" />
             <param name="initial_x" value="5.08" type="double" />
             <param name="initial_y" value="5.544445" type="double" />
             <param name="initial_theta" value="4.8523" type="double" />
@@ -34,8 +34,8 @@
 
     <group ns="$(arg ns)/turtle3">    
         <node pkg="turtlesine" name="turtlesine" type="turtlesine">
-            <param name="a_speed" value="0.144" type="double" />
-            <param name="l_speed" value="0.244" type="double" />
+            <param name="a_speed" value="1.144" type="double" />
+            <param name="l_speed" value="1.244" type="double" />
              
             <param name="initial_x" value="5.08" type="double" />
             <param name="initial_y" value="5.544445" type="double" />
