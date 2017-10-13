@@ -23,7 +23,7 @@ namespace task1_pkg {
 	void TurtleSine::simWait(TurtleSine *obj){
 		
 
-		std::unique_lock<std::mutex> lck(obj->mtx);
+		//std::unique_lock<std::mutex> lck(obj->mtx);
 		while (!ros::service::exists("/sim/spawn", true))
 		{
 			
@@ -73,8 +73,8 @@ namespace task1_pkg {
 		
 	{
 		turtlesim::TeleportAbsolute telep;
-		
-
+		static tf::TransformBroadcaster br;
+  		tf::Transform transform;
 		
 		/*
 			Apparently params can't be float, only (str|int|double|bool|yaml), so use temporary vars, the other option is yaml with single vector parameter...
@@ -84,15 +84,6 @@ namespace task1_pkg {
 		nh.getParam("initial_y", ty);
 		nh.getParam("initial_theta", ttheta);
 
-#if 0
-		
-		boost::tokenizer<boost::char_separator<char>> tokens(ns, boost::char_separator<char>("/"));
-		std::vector<std::string> result(tokens.begin(), tokens.end());
-
-    	//TODO: empty vector check
-		turtlename = result.at(result.size() - 1);
-		std::cout << "NAMESPACE : " <<ros::this_node::getNamespace()<< " "<<turtlename<<std::endl;
-#endif	
 		auto ns = ros::this_node::getNamespace();
 		int pos = ns.find_last_of('/');
   		turtlename = ns.substr(pos + 1);
@@ -124,6 +115,12 @@ namespace task1_pkg {
 			}
 		}else
 			clienttelep.call(telep);
+	
+		transform.setOrigin( tf::Vector3(tx, ty, 0.0) );
+  		tf::Quaternion q3;
+  		q3.setRPY(0, 0, ttheta);
+  		transform.setRotation(q3);
+  		br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", turtlename + std::string("_odometry")));
 	}
 	
 	
