@@ -1,9 +1,6 @@
 <launch>
-    <arg name="ns" default="" />
+    <arg name="ns" default="/demo"/>
      
-    <remap from="$(arg ns)/sim/turtle1" to="$(arg ns)/turtle1/turtlesine" />  
-    <remap from="$(arg ns)/sim/turtle2" to="$(arg ns)/turtle2/turtlesine" />
-    <remap from="$(arg ns)/sim/turtle3" to="$(arg ns)/turtle3/turtlesine" />
 
     <group ns="$(arg ns)/sim">
         <node pkg="turtlesim" name="turtlesim" type="turtlesim_node"/>
@@ -11,39 +8,49 @@
 
     
     
-    <group ns="$(arg ns)/turtle1">    
-        <node pkg="turtlesine" name="turtlesine" type="turtlesine">
+    <group ns="$(arg ns)/turtlesine">    
+
+        <arg name="turtlename" default="turtle1"/>
+        <node pkg="turtlesine" name="$(arg turtlename)" type="turtlesine">
+           
             <param name="a_speed" value="4.44" type="double" />
             <param name="l_speed" value="4.44" type="double" />
             
             <param name="initial_x" value="2.5" type="double" />
             <param name="initial_y" value="8.7" type="double" />
-            <param name="initial_theta" value="0" type="double" />
+            <param name="initial_theta" value="1" type="double" />
+
+            <remap from="~pose" to="$(arg ns)/sim/$(arg turtlename)/pose" />
+            <remap from="~cmd_vel" to="$(arg ns)/sim/$(arg turtlename)/cmd_vel" />
+            <remap from="~spawn" to="$(arg ns)/sim/spawn" />
+            <remap from="~kill" to="$(arg ns)/sim/kill" />
+            <remap from="~teleport_absolute" to="$(arg ns)/sim/$(arg turtlename)/teleport_absolute" />
+            
         </node>        
     </group>
 <!--
-    <group ns="$(arg ns)/turtle2">    
-        <node pkg="turtlesine" name="turtlesine" type="turtlesine">
+    <group ns="$(arg ns)/turtlesine">    
+        
+        <arg name="turtlename" default="turtle2"/>
+        <node pkg="turtlesine" name="$(arg turtlename)" type="turtlesine">
+           
             <param name="a_speed" value="4.44" type="double" />
             <param name="l_speed" value="4.44" type="double" />
+            
             <param name="initial_x" value="11.08" type="double" />
-            <param name="initial_y" value="5.544445" type="double" />
-            <param name="initial_theta" value="4.8523" type="double" />
+            <param name="initial_y" value="5.5444" type="double" />
+            <param name="initial_theta" value="4.8" type="double" />
+
+            <remap from="~pose" to="$(arg ns)/sim/$(arg turtlename)/pose" />
+            <remap from="~cmd_vel" to="$(arg ns)/sim/$(arg turtlename)/cmd_vel" />
+            <remap from="~spawn" to="$(arg ns)/sim/spawn" />
+            <remap from="~kill" to="$(arg ns)/sim/kill" />
+            <remap from="~teleport_absolute" to="$(arg ns)/sim/$(arg turtlename)/teleport_absolute" />
+            
         </node>        
     </group>
 
-    <group ns="$(arg ns)/turtle3">    
-        <node pkg="turtlesine" name="turtlesine" type="turtlesine">
-            <param name="a_speed" value="4.44" type="double" />
-            <param name="l_speed" value="4.44" type="double" />
-             
-            <param name="initial_x" value="5.08" type="double" />
-            <param name="initial_y" value="5.544445" type="double" />
-            <param name="initial_theta" value="3.8523" type="double" />
-        </node>        
-    </group>
 -->
-
 <!--
     <node pkg="nodelet" type="nodelet" name="standalone_nodelet"  args="manager" output="screen"/>
     <node pkg="nodelet" type="nodelet" name="TurtleSine" args="load task1_pkg/TurtleSine standalone_nodelet" output="screen">
@@ -51,8 +58,8 @@
 -->
     <group ns="$(arg ns)/debug">
       <!--  <node pkg="rqt_plot" name="rqt_plot" type="rqt_plot" args ="/task1/turtle1/turtlesine/odompub/p /task1/turtle2/turtlesine/odompub/p"/>  -->
-     <!--   <node pkg="rostopic" type="rostopic" name="rostopic" args="list" output="screen"/>  
-        <node pkg="rosservice" type="rosservice" name="rosservice" args="list" output="screen"/> -->
+        <node pkg="rostopic" type="rostopic" name="rostopic" args="list" output="screen"/>  
+        <node pkg="rosservice" type="rosservice" name="rosservice" args="list" output="screen"/> 
     </group>
 
 </launch>

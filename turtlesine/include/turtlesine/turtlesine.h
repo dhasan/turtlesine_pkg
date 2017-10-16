@@ -5,6 +5,7 @@
 #include <geometry_msgs/Twist.h>
 #include <nodelet/nodelet.h>
 #include <turtlesim/Pose.h>
+#include <tf/transform_listener.h>
 
 #include <thread>             
 #include <mutex>              
@@ -15,62 +16,12 @@
 #define		POSE_THETA	(2)
 
 #define 	TIME_DT 	(1.0/26)
+
+#define M_PI 3.14159265358979323846
+
 namespace task1_pkg {
 	class TurtleSine : public nodelet::Nodelet
 	{
-
-
-	private:
-
-		class PoseListener
-		{
-			private:
-				TurtleSine *parent;
-			public:
-  				void poseCallback(const turtlesim::PoseConstPtr& msg);
-
-  				PoseListener(TurtleSine *p);
-  				PoseListener() = default;
-  				 
-  				virtual ~PoseListener() = default;
-  				PoseListener(const PoseListener&) = delete;
-				PoseListener& operator= (const PoseListener&) = delete; //copy assignment operator
-				PoseListener(PoseListener&&) =delete; //move constructor
-				PoseListener& operator=(PoseListener&&) = delete; //move assignment operator
-
-		};
-		double dt;
-
-		ros::NodeHandle& nh;
-	
-		ros::Publisher pubsine;
-		ros::ServiceClient clienttelep;
-		ros::ServiceClient spawn;
-		ros::Timer timer;
-		ros::Publisher odompub;
-		ros::ServiceClient kill;
-
-		ros::Subscriber posesub;
-		
-		std::vector<double> lastpose;
-		std::string turtlename;
-
-		std::mutex mtx;
-		std::condition_variable cv;
-		std::thread thread;
-
-		PoseListener poselistener;
-
-		int count;
-		
-		
-
-		static void timerCallback(TurtleSine *obj);
-		static void simWait(TurtleSine *obj);
-
-		void poseCalculate(const geometry_msgs::Twist &twist);
-		//void poseCallback(const turtlesim::PoseConstPtr& msg);
-
 
 
 	public:
@@ -86,6 +37,89 @@ namespace task1_pkg {
 		TurtleSine& operator= (const TurtleSine&) = delete; //copy assignment operator
 		TurtleSine(TurtleSine&&) = delete; //move constructor
 		TurtleSine& operator=(TurtleSine&&) = delete; //move assignment operator
+
+	private:
+		//Depricated
+#if 0
+		class PoseListener
+		{
+			public:
+  				void poseCallback(const turtlesim::PoseConstPtr& msg);
+
+  				PoseListener(TurtleSine *p);
+  				PoseListener() = default;
+  				 
+  				virtual ~PoseListener() = default;
+  				PoseListener(const PoseListener&) = delete;
+				PoseListener& operator= (const PoseListener&) = delete; //copy assignment operator
+				PoseListener(PoseListener&&) =delete; //move constructor
+				PoseListener& operator=(PoseListener&&) = delete; //move assignment operator
+
+			private:
+				TurtleSine *parent;
+			
+
+		};
+#endif
+		//Timer call back from boost bind
+		static void timerCallback(TurtleSine *obj);
+
+		//Conditional variable callback 
+		static void simWait(TurtleSine *obj);
+
+		//Odometry calculation method
+		void poseCalculate(const geometry_msgs::Twist &twist);
+
+		void toPolar(sensor_msgs::PointCloud &in, std::vector<double> &alpha, std::vector<double> &r) const;
+
+		//Time discrete of the turtle
+		double dt;
+
+		//ROS node handle
+		ros::NodeHandle& nh;
+		
+		//Velocities command publisher
+		ros::Publisher pubsine;
+		ros::Publisher posepub;
+		ros::Publisher laserscan;
+		ros::Publisher pcpub;
+		sensor_msgs::PointCloud pc;
+		sensor_msgs::PointCloud turtlepc;
+
+		//Turtle teleportation service client
+		ros::ServiceClient clienttelep;
+
+		//Turtle spawn service client
+		ros::ServiceClient spawn;
+
+		//Turtle main timer
+		ros::Timer timer;
+
+		//Turtle odometry publisher
+		ros::Publisher odompub;
+
+		//Turtle kill service client
+		ros::ServiceClient kill;
+
+		//Depricated
+		//ros::Subscriber posesub;
+		
+		//Odometry vector storage
+		std::vector<double> lastpose;
+
+		//Name of the turtle
+		std::string turtlename;
+
+
+		std::mutex mtx;
+		std::condition_variable cv;
+		std::thread thread;
+
+		//PoseListener poselistener;
+
+		tf::TransformListener tflistener;
+
+		int count;
 	
 	};
 
