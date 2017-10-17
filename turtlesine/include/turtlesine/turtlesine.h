@@ -40,7 +40,7 @@ namespace task1_pkg {
 
 	private:
 		//Depricated
-#if 0
+#if 1
 		class PoseListener
 		{
 			public:
@@ -81,16 +81,21 @@ namespace task1_pkg {
 		//Velocities command publisher
 		ros::Publisher pubsine;
 		ros::Publisher posepub;
-		ros::Publisher laserscan;
-		ros::Publisher pcpub;
-		sensor_msgs::PointCloud pc;
-		sensor_msgs::PointCloud turtlepc;
+		//ros::Publisher laserscan;
+		//ros::Publisher pcpub;
+		
+		//sensor_msgs::PointCloud pc;
+		//sensor_msgs::PointCloud turtlepc;
+
+		tf::Transform gpstransform;
 
 		//Turtle teleportation service client
 		ros::ServiceClient clienttelep;
 
 		//Turtle spawn service client
 		ros::ServiceClient spawn;
+
+		pthread_mutex_t var=PTHREAD_MUTEX_INITIALIZER;
 
 		//Turtle main timer
 		ros::Timer timer;
@@ -102,7 +107,7 @@ namespace task1_pkg {
 		ros::ServiceClient kill;
 
 		//Depricated
-		//ros::Subscriber posesub;
+		ros::Subscriber posesub;
 		
 		//Odometry vector storage
 		std::vector<double> lastpose;
@@ -115,7 +120,7 @@ namespace task1_pkg {
 		std::condition_variable cv;
 		std::thread thread;
 
-		//PoseListener poselistener;
+		PoseListener poselistener;
 
 		tf::TransformListener tflistener;
 

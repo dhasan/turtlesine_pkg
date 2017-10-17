@@ -21,6 +21,8 @@
 #include <tf/tf.h>
 #include <math.h>
 
+#include <pthread.h>
+
 PLUGINLIB_EXPORT_CLASS(task1_pkg::TurtleSine, nodelet::Nodelet)
 
 namespace task1_pkg {
@@ -50,47 +52,68 @@ namespace task1_pkg {
 		ROS_ERROR("KILLING THE TURTLE");
 
 	}
-#if 0
+#if 1
 	TurtleSine::PoseListener::PoseListener(TurtleSine *p) : parent(p){}
 
 	void TurtleSine::PoseListener::poseCallback(const turtlesim::PoseConstPtr& msg){
-
-		//TODO: remove this
 		
 		static tf::TransformBroadcaster br;
- 		tf::Transform transform;
-  		transform.setOrigin( tf::Vector3(msg->x, msg->y, 0.0) );
+ 	
+ 		//if (parent->count % 3 != 0)
+ 		//	return ;
+
+ 		pthread_mutex_lock(&parent->var);
+
+  		parent->gpstransform.setOrigin( tf::Vector3(msg->x, msg->y, 0.0) );
   		tf::Quaternion q;
   		q.setRPY(0, 0, msg->theta);
-  		transform.setRotation(q);
-  		//br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "world", parent->turtlename+std::string("_pose")));
+  		parent->gpstransform.setRotation(q);
+  		ros::Time time_now = ros::Time::now();
+  		
+  		br.sendTransform(tf::StampedTransform(parent->gpstransform, time_now, "map", parent->turtlename+std::string("_odom")));
+  		br.sendTransform(tf::StampedTransform(tf::Transform(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0.0, 0.0, 0.0)), time_now, parent->turtlename+std::string("_odom"), parent->turtlename+std::string("_base_link")));
+  		
+  		
+  		/*
+			Reset the odometry, with gps values, to discard the accumulated error
+			The idea is to replace pose values from turtlesim with real GPS data that comes on every 1 second (very rear)
+  		*/
+  		//TODO create atomic section
+  		parent->lastpose.at(POSE_X) = 0;
+  		parent->lastpose.at(POSE_Y) = 0;
+  		parent->lastpose.at(POSE_THETA) = 0;
+
+
+  		//TODO: send staped pose aswell
+
+  		pthread_mutex_unlock(&parent->var);
+
+
+
+  	
+  
 
 	}
 #endif
 
 	TurtleSine::TurtleSine() : nh(getPrivateNodeHandle()){}
 	
-	TurtleSine::TurtleSine(ros::NodeHandle &n) : nh(n) ,dt(ros::Time().toSec()), pubsine(nh.advertise<geometry_msgs::Twist>("cmd_vel", 1000)),
+	TurtleSine::TurtleSine(ros::NodeHandle &n) : nh(n) , dt(ros::Time().toSec()), pubsine(nh.advertise<geometry_msgs::Twist>("cmd_vel", 1000)),
 		clienttelep(nh.serviceClient<turtlesim::TeleportAbsolute>("teleport_absolute")), 
 		spawn(nh.serviceClient<turtlesim::Spawn>("spawn")),
 		timer(nh.createTimer(ros::Duration(TIME_DT), boost::bind(&TurtleSine::timerCallback, this))),
 		odompub(nh.advertise<nav_msgs::Odometry>("odometry", 1000)),
 		posepub(nh.advertise<geometry_msgs::PoseStamped>("stampedpose", 1000)),
 		kill(nh.serviceClient<turtlesim::Kill>("kill")),
-		laserscan(nh.advertise<sensor_msgs::LaserScan>("laserscan", 1000)),
-		pcpub(nh.advertise<sensor_msgs::PointCloud>("/demo/pointcloud", 1000)),
-		//poselistener(this),
-		//posesub(nh.subscribe("pose", 10, &PoseListener::poseCallback, &poselistener)),
+		poselistener(this),
+		posesub(nh.subscribe("pose", 10, &PoseListener::poseCallback, &poselistener)),
 		lastpose(3, .0)
 		
 	{
 		turtlesim::TeleportAbsolute telep;
 		static tf::TransformBroadcaster br;
-  		tf::Transform transform;
+  		//tf::Transform transform;
 		
-		/*
-			Apparently params can't be float, only (str|int|double|bool|yaml), so use temporary vars, the other option is yaml with single vector parameter...
-		*/
 		double tx,ty,ttheta;
 		nh.getParam("initial_x", tx);
 		nh.getParam("initial_y", ty);
@@ -99,6 +122,8 @@ namespace task1_pkg {
 		auto ns = nh.getNamespace();
 		int pos = ns.find_last_of('/');
   		turtlename = ns.substr(pos + 1);
+
+  		//gpstransform = tf::Transform(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0.0, 0.0, 0.0));
 
 		/*
 			Since both nodes are starting at the same from launcher sometimes turtlesine node starts before
@@ -128,38 +153,11 @@ namespace task1_pkg {
 		}else
 			clienttelep.call(telep);
 	
-		transform.setOrigin( tf::Vector3(tx, ty, 0.0) );
+		gpstransform.setOrigin( tf::Vector3(tx, ty, 0.0) );
   		tf::Quaternion q3;
   		q3.setRPY(0, 0, ttheta);
-  		transform.setRotation(q3);
-  		br.sendTransform(tf::StampedTransform(transform, ros::Time::now(), "map", turtlename + std::string("_odometry")));
-
-  		//sensor_msgs::PointCloud pc;
-  		pc.header.stamp = ros::Time();
-		pc.header.frame_id = "map";
-		pc.points.resize(401);
-		int cnt = 0;
-  		for (int i = 0; i<100; i++){
-  			
-  			
-  			pc.points[cnt].x = i * 11.08/100;
-  			pc.points[cnt].y = 0;
-  			pc.points[cnt].z = 0;
-  			cnt++;
-  			pc.points[cnt].x = i * 11.08/100;
-  			pc.points[cnt].y = 11.08;
-  			pc.points[cnt].z = 0;
-  			cnt++;
-  			pc.points[cnt].x = 0;
-  			pc.points[cnt].y = i * 11.08/100;
-  			pc.points[cnt].z = 0;
-  			cnt++;
-  			pc.points[cnt].x = 11.08;
-  			pc.points[cnt].y = i * 11.08/100;
-  			pc.points[cnt].z = 0;
-  			cnt++;
-  		}
-
+  		gpstransform.setRotation(q3);
+  		br.sendTransform(tf::StampedTransform(gpstransform, ros::Time::now(), "map", turtlename + std::string("_odom")));
 
 	}
 	
@@ -173,6 +171,8 @@ namespace task1_pkg {
 		obj->nh.getParam("a_speed", as);
 		obj->nh.getParam("l_speed", ls);
 
+		pthread_mutex_lock(&obj->var);
+
 		twist.linear.x = as;
 		twist.linear.y = 0;
 		twist.linear.z = 0;
@@ -185,12 +185,17 @@ namespace task1_pkg {
 	  		twist.angular.z *= -1;
 	  	}
 	
+
 	  	obj->pubsine.publish(twist);
 		
+
+	  	/*
+	  		TODO use separate thread for odometry calculation than twist callback
+	  	*/
 		obj->poseCalculate(twist);
 	
-	  
-		obj->count++;
+	  	obj->count++;
+	  	pthread_mutex_unlock(&obj->var);
 	}
 
 	void TurtleSine::toPolar(sensor_msgs::PointCloud &in, std::vector<double> &alpha, std::vector<double> &r) const {
@@ -198,7 +203,6 @@ namespace task1_pkg {
 		for (int i=0;i<in.points.size();i++){
 			r[i] = (sqrt((in.points[i].x * in.points[i].x)  + (in.points[i].y * in.points[i].y)));
 			alpha[i] = (atan2(in.points[i].y, in.points[i].x));
-			//ROS_ERROR("Alpha: %f x: %f y: %f", alpha[i], in.points[i].x, in.points[i].y);
 		}
 
 	}
@@ -210,10 +214,9 @@ namespace task1_pkg {
 
 		geometry_msgs::PoseStamped ps;
 		
-		sensor_msgs::LaserScan ls;
 
 		static tf::TransformBroadcaster br;
-  		tf::Transform transform_bs, transform;
+  		tf::Transform transform_bs;
   		tf::StampedTransform maptransform;
   		ros::Time time_now = ros::Time::now();
   		if (dt==0){
@@ -251,7 +254,7 @@ namespace task1_pkg {
 
 		odom.header.stamp = time_now;
 		
-		odom.header.frame_id = turtlename + std::string("_odometry");
+		odom.header.frame_id = turtlename + std::string("_odom");
 		odom.child_frame_id = turtlename + std::string("_base_link");
 
 	
@@ -270,113 +273,23 @@ namespace task1_pkg {
 		odompub.publish(odom);
 
 		ps.header.stamp = time_now;
-		ps.header.frame_id = turtlename + std::string("_odometry");
+		ps.header.frame_id = turtlename + std::string("_base_link");
 
 		posepub.publish(ps);
 
+
+		/*
+			After we create separate thread we may uncomment this lines to send the transformation of odometry
+		*/
+
+		//TODO odom map
+		br.sendTransform(tf::StampedTransform(gpstransform, time_now, "map", turtlename+std::string("_odom")));
+#if 0
   		transform_bs.setOrigin( tf::Vector3(lastpose.at(POSE_X), lastpose.at(POSE_Y), 0.0) );
   		transform_bs.setRotation(q);  		
-
-
-  		br.sendTransform(tf::StampedTransform(transform_bs, time_now, turtlename + std::string("_odometry"), turtlename + std::string("_base_link")));
-
-  		//Initial coordinates
-  		//TOOD add this to constructor as well 
-  		transform.setOrigin( tf::Vector3(tx, ty, 0.0) );
-  		tf::Quaternion q3;
-  		q3.setRPY(0, 0, ttheta);
-  		transform.setRotation(q3);
-  		br.sendTransform(tf::StampedTransform(transform, time_now, "map", turtlename + std::string("_odometry")));
-
-  		ls.header.stamp = time_now;
-  		ls.header.frame_id = turtlename + std::string("_base_link");
-
-#if 0
-  		size_t last_index = turtlename.find_last_not_of("0123456789");
-		int current_turtle_id = atoi(turtlename.substr(last_index + 1));
-
-		std::cout << "CURRENT TURTLE ID" << current_turtle_id << std::endl;
+  		br.sendTransform(tf::StampedTransform(transform_bs, time_now, turtlename + std::string("_odom"), turtlename + std::string("_base_link")));
 #endif
-
-  		//sensor_msgs::PointCloud pc;
-  		//pc.header.stamp = time_now;
-		
-  		pcpub.publish(pc);
-
-  		
-  		//turtlepc.points.resize(628);
-#if 1
-  		try{
-  		tflistener.waitForTransform(turtlename + std::string("_base_link"), "map", time_now, ros::Duration(0.03));
-  		}catch(tf::TransformException& ex){
-       		ROS_ERROR("Received an exception trying to transform a point from \"base_laser\" to \"base_link\": %s", ex.what());
-     	}
-
-      	//tflistener.lookupTransform(turtlename + std::string("_base_link"), "map", ros::Time(0), maptransform);
-
-  		int measurments = 628; //2pi*100
-
-  		ls.angle_min = 0;
-  		ls.angle_max = 2*M_PI;
-  		ls.angle_increment =(ls.angle_max - ls.angle_min)/measurments;
-  	//	ls.time_increment = (dt/40)/measurments;
-  //		ls.scan_time = dt;
-  		ls.range_min = 0;
-  		ls.range_max = 5.0;
-  	
-  		ls.ranges.resize(measurments);
-  		//ls.intensities.resize(measurments);
-
-  		for(int i=0;i<measurments;i++){
-   			ls.ranges[i] = ls.range_max;
-   			//ls.intensities[i] = measurments;
-		}
-
-	
-		try{
-     		tflistener.transformPointCloud(turtlename + std::string("_base_link"),pc,turtlepc);
-     	//	tflistener.transformPointCloud(turtlename + std::string("_base_link"), ros::Time(0), pc, "map", turtlepc);
-    	}catch(tf::TransformException& ex){
-       		ROS_ERROR("Received an exception trying to transform a point from \"base_laser\" to \"base_link\": %s", ex.what());
-     	}
-  #if 1
-      	std::vector<double> alphas(measurments, 0);
-      	std::vector<double> ranges(measurments, 0);
-      
-      	toPolar(turtlepc, alphas, ranges);
-
-
-      	for(int i=0;i<measurments;i++){
-
-      		int index = static_cast<unsigned int>((alphas[i]) * (1/ls.angle_increment)) % measurments;
-      	//	ROS_ERROR("Alpha %f Index: %d", alphas[i], index);
-      		if ((ranges[i] < ls.ranges[index]) && ((index<157)) )
-   				ls.ranges[index] = ranges[i];
-   			//ls.intensities[i] = measurments;
-		}
-#endif
-		laserscan.publish(ls);
-
-
-      		 //tf::TransformListener::transformPointCloud(turtlename + std::string("_base_link"),ros::Time(0), pc, "map", turtlepc);
-      //	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr off_scene_model (new pcl::PointCloud<pcl::PointXYZRGBA> ());
-	//	pcl::PointCloud<pcl::PointXYZRGBA>::Ptr off_scene_model_keypoints (new pcl::PointCloud<pcl::PointXYZRGBA> ());
-
-  	//	pcl::transformPointCloud(*off_scene_model, *off_scene_model_keypoints, maptransform);
-
-
-   		//}catch (tf::TransformException &ex) {
-   		//	ROS_ERROR("%s",ex.what());
-      	//	ros::Duration(1.0).sleep();
-      	//	continue;
-    	//}
-
-    //	tf::TransformListener::transformPointClund (const std::string &target_frame, const geometry_msgs::DATATYPEStamped &stamped_in, geometry_msgs::DATATYPEStamped &stamped_out) const 
-
-  		//getTurtletoTurtleTransform()
-#endif
-  		
-				
+  					
   		dt = time_now.toSec();
   		
 	}

@@ -124,6 +124,8 @@ catkin_package(
 include_directories(
   include
   include/turtlesine
+  include/mapsim
+  include/lasersim
   ${catkin_INCLUDE_DIRS}
 )
 
@@ -159,6 +161,12 @@ include_directories(
 
 add_executable(turtlesine src/turtlesine.cpp)
 target_link_libraries(turtlesine ${catkin_LIBRARIES})
+
+add_executable(mapsim src/mapsim.cpp)
+target_link_libraries(mapsim ${catkin_LIBRARIES})
+
+add_executable(lasersim src/lasersim.cpp)
+target_link_libraries(lasersim ${catkin_LIBRARIES})
 
 
 #############
