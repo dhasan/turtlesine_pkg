@@ -6,14 +6,7 @@
 
 #include <nodelet/nodelet.h>
 #include <tf/transform_listener.h>
-
-#include <thread>             
-#include <mutex>              
-#include <condition_variable> 
-
-#define 	TIME_DT 	(1.0)
-
-#define M_PI 3.14159265358979323846
+#include <cmath>
 
 /* namespace task1_pkg {*/
 
@@ -51,10 +44,7 @@
   				TurtleListener() = default;
   				 
   				virtual ~TurtleListener() = default;
-  				//TurtleListener(const TurtleListener&) = delete;
-				//TurtleListener& operator= (const TurtleListener&) = delete; //copy assignment operator
-				//TurtleListener(TurtleListener&&) =delete; //move constructor
-				//TurtleListener& operator=(TurtleListener&&) = delete; //move assignment operator
+  				TurtleListener& operator= (const TurtleListener&) = delete; //copy assignment operator
 
 			private:
 				Lasersim *parent;
@@ -66,6 +56,7 @@
 
 		static void timerCallback(Lasersim *obj);
 
+		//Transformation from cadestrian coordinates to polar
 		void toPolarPC(const sensor_msgs::PointCloud &in, std::vector<double> &alpha, std::vector<double> &r) const;
 		void toPolarP(const geometry_msgs::Point &in, double &alpha, double &r) const;
 
@@ -86,22 +77,31 @@
 
 		ros::NodeHandle& nh;
 
+		//Name of the turtle
 		std::string turtlename;
 
+		//Walls subscriber
 		ros::Subscriber wallssub;
 
+		//walls listeners
 		WallsListener wallslistener;
 		
 		tf::TransformListener tflistener;
 
+		//LaserScan publisher
 		ros::Publisher laserscan;
 
+		//Laser scan
 		sensor_msgs::LaserScan ls;
+
+		//Time discrete
+		double dt;
 
 		//TODO: use list for subs and listeners!!!
 		ros::Subscriber turtlessub[10];
 		TurtleListener turtlelisteners[10];
 
+		//laser message measurements 
 		int measurments;
 		unsigned int flags;
 		int turtles_cnt;

@@ -21,8 +21,7 @@
     void Lasersim::TurtleListener::poseCallback(const geometry_msgs::PoseStampedConstPtr &msg){
         static tf::TransformBroadcaster br;
        
-#if 1
-       // ROS_ERROR("POSE: %s", msg->header.frame_id.c_str());
+
 
         geometry_msgs::PoseStamped transformedpose;
         ros::Time time_now = ros::Time::now();
@@ -32,20 +31,16 @@
         int recivedturtleid = boost::lexical_cast<int>(v.at(0).back());
         int turtleid = boost::lexical_cast<int>(parent->turtlename.back());
 
-        br.sendTransform(tf::StampedTransform(tf::Transform(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0.0, 0.0, 0.0)), time_now, parent->turtlename+std::string("_base_link"), parent->turtlename+std::string("_laser")));
-
-
         try{
-           // parent->tflistener.waitForTransform(parent->turtlename + std::string("_laser"), "map", time_now, ros::Duration(0.03));
-             parent->tflistener.waitForTransform(parent->turtlename + std::string("_laser"), v.at(0)+std::string("_base_link"), time_now, ros::Duration(0.03));
+             parent->tflistener.waitForTransform( v.at(0)+std::string("_base_link"), parent->turtlename + std::string("_laser"), time_now, ros::Duration(0.03));
         }catch(tf::TransformException& ex){
-            ROS_ERROR("Wait an exception trying to transform a point from \"base_laser\" to \"base_link\": %s", ex.what());
+            ROS_ERROR("Wait an exception trying to transform a point from \"%s\" to \"%s\": %s",  std::string(v.at(0)+std::string("_base_link")).c_str(), std::string(parent->turtlename + std::string("_laser")).c_str(), ex.what());
         }
 
         try{
             parent->tflistener.transformPose(parent->turtlename + std::string("_laser"), *msg, transformedpose);
         }catch(tf::TransformException& ex){
-            ROS_ERROR("Received an exception trying to transform a point from \"base_laser\" to \"base_link\": %s", ex.what());
+            ROS_ERROR("Received an exception trying to transform a point from \"%s\" to \"%s\": %s", msg->header.frame_id.c_str(), std::string(parent->turtlename + std::string("_laser")).c_str(), ex.what());
         }
 
         double alpha, range;
@@ -66,18 +61,15 @@
 
 
         parent->flags |= (1 << recivedturtleid);
-     //   ROS_ERROR("%d POSE RCTID: %d flags: %x, expected: %x", turtleid, recivedturtleid, parent->flags, mask );
-
-      //  if (parent->flags == mask){
+   
+        if (parent->flags == mask){
         
             parent->ls.header.stamp = time_now;
             parent->ls.header.frame_id = parent->turtlename + std::string("_laser");
             parent->laserscan.publish(parent->ls);
             parent->resetlaser();
-            
-       // }
-
-#endif
+            parent->dt = time_now.toSec();            
+       }
 
     }
 
@@ -113,6 +105,8 @@
                 ROS_ERROR("init");
             }
         }
+
+        dt =ros::Time::now().toSec();
 
         double amin, amax, rmin, rmax;
         nh.getParam("measurments", measurments);
@@ -151,12 +145,8 @@
     }
 
     void Lasersim::toPolarP(const geometry_msgs::Point &in, double &alpha, double &r) const {
-
-        //for (int i=0;i<in.points.size();i++){
-            r= (sqrt((in.x * in.x)  + (in.y * in.y)));
-            alpha = (atan2(in.y, in.x));
-        //}
-
+        r= (sqrt((in.x * in.x)  + (in.y * in.y)));
+        alpha = (atan2(in.y, in.x));
     }
 
     void Lasersim::resetlaser(){
@@ -176,26 +166,19 @@
         static tf::TransformBroadcaster br;
         sensor_msgs::PointCloud turtlepc;
       
-      //  parent->resetlaser();
-        
-
-        ros::Time time_now = ros::Time::now();
-
-        br.sendTransform(tf::StampedTransform(tf::Transform(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0.0, 0.0, 0.0)), time_now, parent->turtlename+std::string("_base_link"), parent->turtlename+std::string("_laser")));
-
-        
-       
+    
+        ros::Time time_now = ros::Time();
 
         try{
-            parent->tflistener.waitForTransform(parent->turtlename + std::string("_laser"), "map", time_now, ros::Duration(0.03));
+            parent->tflistener.waitForTransform("map", parent->turtlename + std::string("_laser"), time_now, ros::Duration(0.01));
         }catch(tf::TransformException& ex){
-            ROS_ERROR("Wait an exception trying to transform a point from \"base_laser\" to \"base_link\": %s", ex.what());
+            ROS_ERROR("Wait an exception trying to transform a point from \"%s\" to \"%s\": %s", "map", std::string(parent->turtlename + std::string("_laser")).c_str(), ex.what());
         }
 
         try{
             parent->tflistener.transformPointCloud(parent->turtlename + std::string("_laser"), *msg, turtlepc);
         }catch(tf::TransformException& ex){
-            ROS_ERROR("Received an exception trying to transform a point from \"base_laser\" to \"base_link\": %s", ex.what());
+            ROS_ERROR("Received an exception trying to transform a point from \"%s\" to \"%s\": %s", msg->header.frame_id.c_str(), std::string(parent->turtlename + std::string("_laser")).c_str(), ex.what());
         }
 
         std::vector<double> alphas(parent->measurments, 0);
@@ -203,7 +186,6 @@
 
         parent->toPolarPC(turtlepc, alphas, ranges);
 
-#if 1
         for(int i=0;i<parent->measurments;i++){
 
             int index = static_cast<unsigned int>((alphas[i] - parent->ls.angle_min) * (1/parent->ls.angle_increment)) % parent->measurments;
@@ -217,17 +199,17 @@
         int turtleid = boost::lexical_cast<int>(parent->turtlename.back());
 
         int mask = ((1 << (parent->turtles_cnt + 1)) -1) & ~(1 << (turtleid));
-       // ROS_ERROR("%d POSE RCTID: MAP flags: %x, expected: %x", turtleid, parent->flags, mask );
-     //   if (parent->flags == mask){
+
+        if (parent->flags == mask){
             
             parent->ls.header.stamp = time_now;
             parent->ls.header.frame_id = parent->turtlename + std::string("_laser");
             parent->laserscan.publish(parent->ls);
             parent->resetlaser();
+            parent->dt = time_now.toSec();
             
-      //  }
-#endif
-        
+        }
+
     }
 
 	Lasersim::Lasersim(): nh(getPrivateNodeHandle()){

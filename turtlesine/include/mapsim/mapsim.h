@@ -6,17 +6,8 @@
 #include <nodelet/nodelet.h>
 #include <tf/transform_listener.h>
 
-#include <thread>             
-#include <mutex>              
-#include <condition_variable> 
+#define 	TIME_DT 	(1.0/30.0)
 
-#define		POSE_X		(0)
-#define		POSE_Y		(1)
-#define		POSE_THETA	(2)
-
-#define 	TIME_DT 	(1.0/100.0)
-
-#define M_PI 3.14159265358979323846
 
 /* namespace task1_pkg {*/
 
@@ -43,6 +34,7 @@
 	private:
 		ros::NodeHandle& nh;
 
+		//point cloud publishter
 		ros::Publisher pcpub;
 
 		sensor_msgs::PointCloud pc;

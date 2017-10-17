@@ -59,8 +59,8 @@ namespace task1_pkg {
 		
 		static tf::TransformBroadcaster br;
  	
- 		//if (parent->count % 3 != 0)
- 		//	return ;
+ 	//	if (parent->odomcount % 10 != 0)
+ //			return ;
 
  		pthread_mutex_lock(&parent->var);
 
@@ -102,6 +102,7 @@ namespace task1_pkg {
 		clienttelep(nh.serviceClient<turtlesim::TeleportAbsolute>("teleport_absolute")), 
 		spawn(nh.serviceClient<turtlesim::Spawn>("spawn")),
 		timer(nh.createTimer(ros::Duration(TIME_DT), boost::bind(&TurtleSine::timerCallback, this))),
+		timerodom(nh.createTimer(ros::Duration(TIME_DTODOM), boost::bind(&TurtleSine::odomCallback, this))),
 		odompub(nh.advertise<nav_msgs::Odometry>("odometry", 1000)),
 		posepub(nh.advertise<geometry_msgs::PoseStamped>("stampedpose", 1000)),
 		kill(nh.serviceClient<turtlesim::Kill>("kill")),
@@ -172,6 +173,7 @@ namespace task1_pkg {
 		obj->nh.getParam("l_speed", ls);
 
 		pthread_mutex_lock(&obj->var);
+		obj->poseCalculate(obj->latesttwist);
 
 		twist.linear.x = as;
 		twist.linear.y = 0;
@@ -181,21 +183,31 @@ namespace task1_pkg {
 		twist.angular.y = 0;
 		twist.angular.z = ls;
 	
-		if ((obj->count % 80) > 40){
+		if ((obj->count % 3) == 0){
 	  		twist.angular.z *= -1;
 	  	}
 	
 
 	  	obj->pubsine.publish(twist);
-		
 
+	  	obj->latesttwist = twist;
+		
 	  	/*
 	  		TODO use separate thread for odometry calculation than twist callback
 	  	*/
-		obj->poseCalculate(twist);
 	
 	  	obj->count++;
+
 	  	pthread_mutex_unlock(&obj->var);
+	  	
+	}
+
+	void TurtleSine::odomCallback(TurtleSine *obj){
+		pthread_mutex_lock(&obj->var);
+
+		obj->poseCalculate(obj->latesttwist);
+		
+		pthread_mutex_unlock(&obj->var);
 	}
 
 	void TurtleSine::toPolar(sensor_msgs::PointCloud &in, std::vector<double> &alpha, std::vector<double> &r) const {
@@ -281,15 +293,12 @@ namespace task1_pkg {
 		/*
 			After we create separate thread we may uncomment this lines to send the transformation of odometry
 		*/
-
-		//TODO odom map
-		br.sendTransform(tf::StampedTransform(gpstransform, time_now, "map", turtlename+std::string("_odom")));
 #if 0
   		transform_bs.setOrigin( tf::Vector3(lastpose.at(POSE_X), lastpose.at(POSE_Y), 0.0) );
   		transform_bs.setRotation(q);  		
   		br.sendTransform(tf::StampedTransform(transform_bs, time_now, turtlename + std::string("_odom"), turtlename + std::string("_base_link")));
 #endif
-  					
+  		odomcount++;
   		dt = time_now.toSec();
   		
 	}

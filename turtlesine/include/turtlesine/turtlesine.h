@@ -6,6 +6,7 @@
 #include <nodelet/nodelet.h>
 #include <turtlesim/Pose.h>
 #include <tf/transform_listener.h>
+#include <cmath>
 
 #include <thread>             
 #include <mutex>              
@@ -15,9 +16,11 @@
 #define		POSE_Y		(1)
 #define		POSE_THETA	(2)
 
-#define 	TIME_DT 	(1.0/26)
+#define 	TIME_DT 	(0.9)
 
-#define M_PI 3.14159265358979323846
+#define 	TIME_DTODOM 	(1.0/100)
+
+//#define M_PI 3.14159265358979323846
 
 namespace task1_pkg {
 	class TurtleSine : public nodelet::Nodelet
@@ -39,8 +42,7 @@ namespace task1_pkg {
 		TurtleSine& operator=(TurtleSine&&) = delete; //move assignment operator
 
 	private:
-		//Depricated
-#if 1
+
 		class PoseListener
 		{
 			public:
@@ -60,9 +62,10 @@ namespace task1_pkg {
 			
 
 		};
-#endif
 		//Timer call back from boost bind
 		static void timerCallback(TurtleSine *obj);
+
+		static void odomCallback(TurtleSine *obj);
 
 		//Conditional variable callback 
 		static void simWait(TurtleSine *obj);
@@ -78,14 +81,9 @@ namespace task1_pkg {
 		//ROS node handle
 		ros::NodeHandle& nh;
 		
-		//Velocities command publisher
+		//Velocities command publisher and turtlesim pose 
 		ros::Publisher pubsine;
 		ros::Publisher posepub;
-		//ros::Publisher laserscan;
-		//ros::Publisher pcpub;
-		
-		//sensor_msgs::PointCloud pc;
-		//sensor_msgs::PointCloud turtlepc;
 
 		tf::Transform gpstransform;
 
@@ -97,8 +95,14 @@ namespace task1_pkg {
 
 		pthread_mutex_t var=PTHREAD_MUTEX_INITIALIZER;
 
-		//Turtle main timer
+		//Turtle main timer for sending twists
 		ros::Timer timer;
+
+		//Odometry integration timer
+		ros::Timer timerodom;
+
+		//Letest twist
+		geometry_msgs::Twist latesttwist;
 
 		//Turtle odometry publisher
 		ros::Publisher odompub;
@@ -115,16 +119,16 @@ namespace task1_pkg {
 		//Name of the turtle
 		std::string turtlename;
 
-
 		std::mutex mtx;
 		std::condition_variable cv;
 		std::thread thread;
 
+		//Pose listener
 		PoseListener poselistener;
 
 		tf::TransformListener tflistener;
 
-		int count;
+		int count,odomcount;
 	
 	};
 

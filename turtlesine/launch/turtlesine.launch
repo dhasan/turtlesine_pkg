@@ -6,6 +6,9 @@
         <node pkg="turtlesim" name="turtlesim" type="turtlesim_node"/>
         <node pkg="turtlesine" name="mapsim" type="mapsim"/>
 
+        <node pkg="tf" type="static_transform_publisher" name="turtle1_to_laser1" args="0 0 0 0 0 0 1 turtle1_base_link turtle1_laser 100" />
+        <node pkg="tf" type="static_transform_publisher" name="turtle2_to_laser1" args="0 0 0 0 0 0 1 turtle2_base_link turtle2_laser 100" />
+
     </group>
 
     
@@ -15,11 +18,11 @@
 
         <node pkg="turtlesine" name="$(arg turtlename)" type="turtlesine">
            
-            <param name="a_speed" value="4.44" type="double" />
-            <param name="l_speed" value="4.44" type="double" />
+            <param name="a_speed" value="1.44" type="double" />
+            <param name="l_speed" value="1.44" type="double" />
             
-            <param name="initial_x" value="2.5" type="double" />
-            <param name="initial_y" value="8.7" type="double" />
+            <param name="initial_x" value="5.5" type="double" />
+            <param name="initial_y" value="5.7" type="double" />
             <param name="initial_theta" value="1" type="double" />
 
             <remap from="~pose" to="$(arg ns)/sim/$(arg turtlename)/pose" />
@@ -31,15 +34,15 @@
         </node>  
          <node pkg="turtlesine" name="$(arg turtlename)_laser" type="lasersim">
 
-            <param name="measurments" value="628" type="int" />
+            <param name="measurments" value="600" type="int" />
             <param name="angle_min" value="-3.14159265" type="double" />
             <param name="angle_max" value="3.14159265" type="double" />
             <param name="range_min" value="0.05" type="double" />
-            <param name="range_max" value="9.0" type="double" />
+            <param name="range_max" value="5.0" type="double" />
             <param name="turtles_cnt" value="2" type="int" />
 
             <remap from="~walls" to="$(arg ns)/sim/mapsim/walls" />
-            <remap from="~stampedpose1" to="$(arg ns)/turtle1/stampedpose" />
+           
             <remap from="~stampedpose2" to="$(arg ns)/turtle2/stampedpose" />
          </node>      
     </group>
@@ -49,8 +52,8 @@
     
         <node pkg="turtlesine" name="$(arg turtlename)" type="turtlesine">
            
-            <param name="a_speed" value="4.44" type="double" />
-            <param name="l_speed" value="4.44" type="double" />
+            <param name="a_speed" value="1.44" type="double" />
+            <param name="l_speed" value="1.44" type="double" />
             
             <param name="initial_x" value="11.08" type="double" />
             <param name="initial_y" value="5.5444" type="double" />
@@ -65,16 +68,16 @@
         </node>  
         <node pkg="turtlesine" name="$(arg turtlename)_laser" type="lasersim">
 
-            <param name="measurments" value="628" type="int" />
+            <param name="measurments" value="600" type="int" />
             <param name="angle_min" value="-3.14159265" type="double" />
             <param name="angle_max" value="3.14159265" type="double" />
             <param name="range_min" value="0.05" type="double" />
-            <param name="range_max" value="9.0" type="double" />
+            <param name="range_max" value="5.0" type="double" />
             <param name="turtles_cnt" value="2" type="int" />
 
             <remap from="~walls" to="$(arg ns)/sim/mapsim/walls" />
             <remap from="~stampedpose1" to="$(arg ns)/turtle1/stampedpose" />
-            <remap from="~stampedpose2" to="$(arg ns)/turtle2/stampedpose" />
+            
          </node>       
     </group>
 
