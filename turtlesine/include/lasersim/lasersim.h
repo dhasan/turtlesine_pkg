@@ -80,6 +80,8 @@
 		//Name of the turtle
 		std::string turtlename;
 
+		std::string lasername;
+
 		//Walls subscriber
 		ros::Subscriber wallssub;
 

@@ -32,43 +32,40 @@
         int turtleid = boost::lexical_cast<int>(parent->turtlename.back());
 
         try{
-             parent->tflistener.waitForTransform( v.at(0)+std::string("_base_link"), parent->turtlename + std::string("_laser"), time_now, ros::Duration(0.03));
+             parent->tflistener.waitForTransform( v.at(0)+std::string("_base_link"), parent->turtlename + std::string("_")+parent->lasername, time_now, ros::Duration(0.01));
         }catch(tf::TransformException& ex){
-            ROS_ERROR("Wait an exception trying to transform a point from \"%s\" to \"%s\": %s",  std::string(v.at(0)+std::string("_base_link")).c_str(), std::string(parent->turtlename + std::string("_laser")).c_str(), ex.what());
+            ROS_ERROR("Wait an exception trying to transform a point from \"%s\" to \"%s\": %s",  std::string(v.at(0)+std::string("_base_link")).c_str(), std::string(parent->turtlename + std::string("_")+parent->lasername).c_str(), ex.what());
         }
 
         try{
-            parent->tflistener.transformPose(parent->turtlename + std::string("_laser"), *msg, transformedpose);
+            parent->tflistener.transformPose(parent->turtlename +  std::string("_")+parent->lasername, *msg, transformedpose);
         }catch(tf::TransformException& ex){
-            ROS_ERROR("Received an exception trying to transform a point from \"%s\" to \"%s\": %s", msg->header.frame_id.c_str(), std::string(parent->turtlename + std::string("_laser")).c_str(), ex.what());
+            ROS_ERROR("Received an exception trying to transform a point from \"%s\" to \"%s\": %s", msg->header.frame_id.c_str(), std::string(parent->turtlename +std::string("_")+parent->lasername).c_str(), ex.what());
         }
 
         double alpha, range;
         parent->toPolarP(transformedpose.pose.position, alpha, range);
-
-         int index = static_cast<unsigned int>((alpha - parent->ls.angle_min) * (1/parent->ls.angle_increment)) % parent->measurments;
+        
+        if ((range < parent->ls.range_max) && (alpha>parent->ls.angle_min) && (alpha<parent->ls.angle_max)){
+            int index = static_cast<unsigned int>((alpha - parent->ls.angle_min) * (1.0/parent->ls.angle_increment)) % parent->measurments;
 
             if (range < parent->ls.ranges[index]) {
                 parent->ls.ranges[index] = range;
                 parent->ls.intensities[index] = range;
             }
-
+        }
      
 
         //TODO: move this to member area
         int mask = ((1 << (parent->turtles_cnt + 1)) -1) & ~(1 << (turtleid));
-
-
 
         parent->flags |= (1 << recivedturtleid);
    
         if (parent->flags == mask){
         
             parent->ls.header.stamp = time_now;
-            parent->ls.header.frame_id = parent->turtlename + std::string("_laser");
             parent->laserscan.publish(parent->ls);
-            parent->resetlaser();
-            parent->dt = time_now.toSec();            
+            parent->resetlaser();          
        }
 
     }
@@ -88,6 +85,7 @@
         std::vector<std::string> v;
         boost::split(v, res, [](char c){return c == '_';});
         turtlename = v.at(0);
+        lasername = v.at(1);
 
         flags = 0;
 
@@ -125,6 +123,8 @@
 
         nh.getParam("range_max", rmax);
         ls.range_max = rmax;
+
+        ls.header.frame_id = turtlename + std::string("_")+lasername;
         
 
         resetlaser();
@@ -165,20 +165,22 @@
 
         static tf::TransformBroadcaster br;
         sensor_msgs::PointCloud turtlepc;
-      
+        
+        if (parent->flags & 1)
+            return;
     
-        ros::Time time_now = ros::Time();
+        ros::Time time_now = ros::Time::now();
 
         try{
-            parent->tflistener.waitForTransform("map", parent->turtlename + std::string("_laser"), time_now, ros::Duration(0.01));
+            parent->tflistener.waitForTransform("map", parent->turtlename + std::string("_")+parent->lasername, time_now, ros::Duration(0.01));
         }catch(tf::TransformException& ex){
-            ROS_ERROR("Wait an exception trying to transform a point from \"%s\" to \"%s\": %s", "map", std::string(parent->turtlename + std::string("_laser")).c_str(), ex.what());
+            ROS_ERROR("Wait an exception trying to transform a point from \"%s\" to \"%s\": %s", "map", std::string(parent->turtlename + std::string("_")+parent->lasername).c_str(), ex.what());
         }
 
         try{
-            parent->tflistener.transformPointCloud(parent->turtlename + std::string("_laser"), *msg, turtlepc);
+            parent->tflistener.transformPointCloud(parent->turtlename + std::string("_")+parent->lasername, *msg, turtlepc);
         }catch(tf::TransformException& ex){
-            ROS_ERROR("Received an exception trying to transform a point from \"%s\" to \"%s\": %s", msg->header.frame_id.c_str(), std::string(parent->turtlename + std::string("_laser")).c_str(), ex.what());
+            ROS_ERROR("Received an exception trying to transform a point from \"%s\" to \"%s\": %s", msg->header.frame_id.c_str(), std::string(parent->turtlename + std::string("_")+parent->lasername).c_str(), ex.what());
         }
 
         std::vector<double> alphas(parent->measurments, 0);
@@ -188,6 +190,12 @@
 
         for(int i=0;i<parent->measurments;i++){
 
+            if (ranges[i] > parent->ls.range_max)
+                continue;
+
+            if ((alphas[i]> parent->ls.angle_max) ||  (alphas[i]< parent->ls.angle_min))
+                continue;
+
             int index = static_cast<unsigned int>((alphas[i] - parent->ls.angle_min) * (1/parent->ls.angle_increment)) % parent->measurments;
 
             if (ranges[i] < parent->ls.ranges[index]) {
@@ -195,6 +203,7 @@
                 parent->ls.intensities[index] = ranges[i];
             }
         }
+
         parent->flags |= 1;
         int turtleid = boost::lexical_cast<int>(parent->turtlename.back());
 
@@ -203,11 +212,8 @@
         if (parent->flags == mask){
             
             parent->ls.header.stamp = time_now;
-            parent->ls.header.frame_id = parent->turtlename + std::string("_laser");
             parent->laserscan.publish(parent->ls);
             parent->resetlaser();
-            parent->dt = time_now.toSec();
-            
         }
 
     }

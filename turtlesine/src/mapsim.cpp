@@ -26,9 +26,9 @@
 	}
 
 	void Mapsim::timerCallback(Mapsim *obj){
-		//ROS_ERROR("In timer");
+
 		geometry_msgs::Point32 point;
-		obj->pc.header.stamp = ros::Time();
+
 		obj->pc.header.frame_id = "map";
 		
 		
@@ -55,7 +55,6 @@
 
   		obj->pcpub.publish(obj->pc);
 
-  		//TODO: use local store
   		obj->pc.points.resize(0);
 	}
 	

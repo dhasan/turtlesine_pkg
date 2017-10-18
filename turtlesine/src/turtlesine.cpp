@@ -15,8 +15,6 @@
 #include <turtlesim/Pose.h>
 
 #include <geometry_msgs/PoseStamped.h>
-#include <sensor_msgs/LaserScan.h>
-#include <sensor_msgs/PointCloud.h>
 #include <tf/transform_listener.h>
 #include <tf/tf.h>
 #include <math.h>
@@ -30,9 +28,7 @@ namespace task1_pkg {
 	const std::string TurtleSine::node_name = "turtlesine";
 
 	void TurtleSine::simWait(TurtleSine *obj){
-		
 
-		//std::unique_lock<std::mutex> lck(obj->mtx);
 		while (!ros::service::exists("~spawn", true))
 		{
 			
@@ -52,16 +48,16 @@ namespace task1_pkg {
 		ROS_ERROR("KILLING THE TURTLE");
 
 	}
-#if 1
+
 	TurtleSine::PoseListener::PoseListener(TurtleSine *p) : parent(p){}
 
 	void TurtleSine::PoseListener::poseCallback(const turtlesim::PoseConstPtr& msg){
 		
 		static tf::TransformBroadcaster br;
- 	
- 	//	if (parent->odomcount % 10 != 0)
- //			return ;
-
+#if 0
+ 		if (parent->odomcount % 50 != 0)
+			return;
+#endif
  		pthread_mutex_lock(&parent->var);
 
   		parent->gpstransform.setOrigin( tf::Vector3(msg->x, msg->y, 0.0) );
@@ -71,30 +67,26 @@ namespace task1_pkg {
   		ros::Time time_now = ros::Time::now();
   		
   		br.sendTransform(tf::StampedTransform(parent->gpstransform, time_now, "map", parent->turtlename+std::string("_odom")));
-  		br.sendTransform(tf::StampedTransform(tf::Transform(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0.0, 0.0, 0.0)), time_now, parent->turtlename+std::string("_odom"), parent->turtlename+std::string("_base_link")));
-  		
-  		
+
+
   		/*
 			Reset the odometry, with gps values, to discard the accumulated error
 			The idea is to replace pose values from turtlesim with real GPS data that comes on every 1 second (very rear)
   		*/
-  		//TODO create atomic section
-  		parent->lastpose.at(POSE_X) = 0;
+  		
+ 		parent->lastpose.at(POSE_X) = 0;
   		parent->lastpose.at(POSE_Y) = 0;
   		parent->lastpose.at(POSE_THETA) = 0;
 
+  		br.sendTransform(tf::StampedTransform(tf::Transform(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0.0, 0.0, 0.0)), time_now, parent->turtlename+std::string("_odom"), parent->turtlename+std::string("_base_link")));
+  		
 
-  		//TODO: send staped pose aswell
+  		
 
   		pthread_mutex_unlock(&parent->var);
 
-
-
-  	
-  
-
 	}
-#endif
+
 
 	TurtleSine::TurtleSine() : nh(getPrivateNodeHandle()){}
 	
@@ -123,8 +115,6 @@ namespace task1_pkg {
 		auto ns = nh.getNamespace();
 		int pos = ns.find_last_of('/');
   		turtlename = ns.substr(pos + 1);
-
-  		//gpstransform = tf::Transform(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0.0, 0.0, 0.0));
 
 		/*
 			Since both nodes are starting at the same from launcher sometimes turtlesine node starts before
@@ -191,10 +181,6 @@ namespace task1_pkg {
 	  	obj->pubsine.publish(twist);
 
 	  	obj->latesttwist = twist;
-		
-	  	/*
-	  		TODO use separate thread for odometry calculation than twist callback
-	  	*/
 	
 	  	obj->count++;
 
@@ -237,7 +223,7 @@ namespace task1_pkg {
   		}
 		
 		dt = time_now.toSec() - dt;
-		//dt = TIME_DT;
+
 		std::cout << "TIME: " << dt << std::endl;
 
 		double vx = twist.linear.x;
@@ -259,9 +245,8 @@ namespace task1_pkg {
 		nh.getParam("initial_y", ty);
 		nh.getParam("initial_theta", ttheta);
 	
-		ROS_INFO("Calculated pose x y: %f %f", lastpose.at(0), lastpose.at(1));
-	
-		//q.setEuler(lastpose.at(POSE_THETA), 0, 0);
+		//ROS_INFO("Calculated pose x y: %f %f", lastpose.at(0), lastpose.at(1));
+
 		tf::Quaternion q = tf::createQuaternionFromRPY(0, 0, lastpose.at(POSE_THETA));
 
 		odom.header.stamp = time_now;
@@ -293,6 +278,7 @@ namespace task1_pkg {
 		/*
 			After we create separate thread we may uncomment this lines to send the transformation of odometry
 		*/
+		br.sendTransform(tf::StampedTransform(gpstransform, time_now, "map", turtlename+std::string("_odom")));
 #if 0
   		transform_bs.setOrigin( tf::Vector3(lastpose.at(POSE_X), lastpose.at(POSE_Y), 0.0) );
   		transform_bs.setRotation(q);  		
