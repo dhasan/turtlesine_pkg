@@ -9,8 +9,11 @@
 
 	const std::string Mapsim::node_name = "mapsim";
 
+	Mapsim::MapTimerListener::MapTimerListener(Mapsim *p) : TimerBaseListener(p){}
+	Mapsim::TimerBaseListener::TimerBaseListener(Mapsim *p) : parent(p){}
+
 	Mapsim::Mapsim(ros::NodeHandle &n): nh(n), 
-		timer(nh.createTimer(ros::Duration(TIME_DT), boost::bind(&Mapsim::timerCallback, this))),
+		timerlistener(this), timer(nh.createTimer(ros::Duration(TIME_DT), &MapTimerListener::timerCallback, &timerlistener)),
 		pcpub(nh.advertise<sensor_msgs::PointCloud>("walls", 1000)){
 
 		
@@ -25,11 +28,11 @@
 
 	}
 
-	void Mapsim::timerCallback(Mapsim *obj){
+	void Mapsim::MapTimerListener::timerCallback(const ros::TimerEvent& e){
 
 		geometry_msgs::Point32 point;
 
-		obj->pc.header.frame_id = "map";
+		parent->pc.header.frame_id = "map";
 		
 		
   		for (int i = 0; i<100; i++){
@@ -38,24 +41,24 @@
   			point.x = i * 11.08/100;
   			point.y = 0;
   			point.z = 0;
-  			obj->pc.points.push_back(point);
+  			parent->pc.points.push_back(point);
   			point.x = i * 11.08/100;
   			point.y = 11.08;
   			point.z = 0;
-  			obj->pc.points.push_back(point);
+  			parent->pc.points.push_back(point);
   			point.x = 0;
   			point.y = i * 11.08/100;
   			point.z = 0;
-  			obj->pc.points.push_back(point);
+  			parent->pc.points.push_back(point);
   			point.x = 11.08;
   			point.y = i * 11.08/100;
   			point.z = 0;
-  			obj->pc.points.push_back(point);
+  			parent->pc.points.push_back(point);
   		}
 
-  		obj->pcpub.publish(obj->pc);
+  		parent->pcpub.publish(parent->pc);
 
-  		obj->pc.points.resize(0);
+  		parent->pc.points.resize(0);
 	}
 	
 

@@ -49,12 +49,16 @@ namespace task1_pkg {
 
 	}
 
+	TurtleSine::TwistTimerListener::TwistTimerListener(TurtleSine *p) : TimerBaseListener(p){}
+	TurtleSine::OdomTimerListener::OdomTimerListener(TurtleSine *p) : TimerBaseListener(p){}
+	TurtleSine::TimerBaseListener::TimerBaseListener(TurtleSine *p) : parent(p){}
+
 	TurtleSine::PoseListener::PoseListener(TurtleSine *p) : parent(p){}
 
 	void TurtleSine::PoseListener::poseCallback(const turtlesim::PoseConstPtr& msg){
 		
 		static tf::TransformBroadcaster br;
-#if 0
+#if 1
  		if (parent->odomcount % 50 != 0)
 			return;
 #endif
@@ -88,13 +92,15 @@ namespace task1_pkg {
 	}
 
 
+
 	TurtleSine::TurtleSine() : nh(getPrivateNodeHandle()){}
 	
 	TurtleSine::TurtleSine(ros::NodeHandle &n) : nh(n) , dt(ros::Time().toSec()), pubsine(nh.advertise<geometry_msgs::Twist>("cmd_vel", 1000)),
 		clienttelep(nh.serviceClient<turtlesim::TeleportAbsolute>("teleport_absolute")), 
 		spawn(nh.serviceClient<turtlesim::Spawn>("spawn")),
-		timer(nh.createTimer(ros::Duration(TIME_DT), boost::bind(&TurtleSine::timerCallback, this))),
-		timerodom(nh.createTimer(ros::Duration(TIME_DTODOM), boost::bind(&TurtleSine::odomCallback, this))),
+		//twisttimerlistener( new TwistTimerListener(this)), twisttimer(nh.createTimer(ros::Duration(TIME_DT), &TwistTimerListener::timerCallback, twisttimerlistener)),
+		twisttimerlistener(this), twisttimer(nh.createTimer(ros::Duration(TIME_DT), &TwistTimerListener::timerCallback, &twisttimerlistener)),
+		odomtimerlistener(this), odomtimer(nh.createTimer(ros::Duration(TIME_DTODOM), &OdomTimerListener::timerCallback, &odomtimerlistener)),
 		odompub(nh.advertise<nav_msgs::Odometry>("odometry", 1000)),
 		posepub(nh.advertise<geometry_msgs::PoseStamped>("stampedpose", 1000)),
 		kill(nh.serviceClient<turtlesim::Kill>("kill")),
@@ -113,7 +119,7 @@ namespace task1_pkg {
 		nh.getParam("initial_theta", ttheta);
 
 		auto ns = nh.getNamespace();
-		int pos = ns.find_last_of('/');
+		auto pos = ns.find_last_of('/');
   		turtlename = ns.substr(pos + 1);
 
 		/*
@@ -153,17 +159,16 @@ namespace task1_pkg {
 	}
 	
 	
-	void TurtleSine::timerCallback(TurtleSine *obj)
+	void TurtleSine::TwistTimerListener::timerCallback(const ros::TimerEvent& e)
 	{
 		geometry_msgs::Twist twist;
-		
 
 		double as,ls;
-		obj->nh.getParam("a_speed", as);
-		obj->nh.getParam("l_speed", ls);
+		parent->nh.getParam("a_speed", as);
+		parent->nh.getParam("l_speed", ls);
 
-		pthread_mutex_lock(&obj->var);
-		obj->poseCalculate(obj->latesttwist);
+		//pthread_mutex_lock(&parent->var);
+		//parent->poseCalculate(parent->latesttwist);
 
 		twist.linear.x = as;
 		twist.linear.y = 0;
@@ -173,40 +178,28 @@ namespace task1_pkg {
 		twist.angular.y = 0;
 		twist.angular.z = ls;
 	
-		if ((obj->count % 3) == 0){
+		if ((parent->count % 3) == 0){
 	  		twist.angular.z *= -1;
 	  	}
 	
 
-	  	obj->pubsine.publish(twist);
+	  	parent->pubsine.publish(twist);
 
-	  	obj->latesttwist = twist;
+	  	parent->latesttwist = twist;
 	
-	  	obj->count++;
+	  	parent->count++;
 
-	  	pthread_mutex_unlock(&obj->var);
+	  //	pthread_mutex_unlock(&parent->var);
 	  	
 	}
 
-	void TurtleSine::odomCallback(TurtleSine *obj){
-		pthread_mutex_lock(&obj->var);
+	void TurtleSine::OdomTimerListener::timerCallback(const ros::TimerEvent& e){
+		//pthread_mutex_lock(&obj->var);
 
-		obj->poseCalculate(obj->latesttwist);
+		//obj->poseCalculate(parent->latesttwist);
 		
-		pthread_mutex_unlock(&obj->var);
-	}
+	//	pthread_mutex_unlock(&obj->var);
 
-	void TurtleSine::toPolar(sensor_msgs::PointCloud &in, std::vector<double> &alpha, std::vector<double> &r) const {
-
-		for (int i=0;i<in.points.size();i++){
-			r[i] = (sqrt((in.points[i].x * in.points[i].x)  + (in.points[i].y * in.points[i].y)));
-			alpha[i] = (atan2(in.points[i].y, in.points[i].x));
-		}
-
-	}
-	
-	void TurtleSine::poseCalculate(const geometry_msgs::Twist &twist){
-	
 		/* Odometry formula*/
 		nav_msgs::Odometry odom;
 
@@ -217,46 +210,46 @@ namespace task1_pkg {
   		tf::Transform transform_bs;
   		tf::StampedTransform maptransform;
   		ros::Time time_now = ros::Time::now();
-  		if (dt==0){
-  			dt = time_now.toSec();
+  		if (parent->dt==0){
+  			parent->dt = time_now.toSec();
   			return;
   		}
 		
-		dt = time_now.toSec() - dt;
+		parent->dt = time_now.toSec() - parent->dt;
 
-		std::cout << "TIME: " << dt << std::endl;
+		//std::cout << "TIME: " << dt << std::endl;
 
-		double vx = twist.linear.x;
-		double vy = twist.linear.y; 
-		double th = twist.angular.z;
+		double vx = parent->latesttwist.linear.x;
+		double vy = parent->latesttwist.linear.y; 
+		double th = parent->latesttwist.angular.z;
 	
-		double thi = lastpose.at(POSE_THETA); //initial angle
+		double thi = parent->lastpose.at(POSE_THETA); //initial angle
 	
-		double delta_x = (vx * cos(thi) - vy * sin(thi)) * dt;
-		double delta_y = (vx * sin(thi) + vy * cos(thi)) * dt;
-		double delta_th = th * dt;
+		double delta_x = (vx * cos(thi) - vy * sin(thi)) * parent->dt;
+		double delta_y = (vx * sin(thi) + vy * cos(thi)) * parent->dt;
+		double delta_th = th * parent->dt;
 	
-		lastpose.at(POSE_X) += delta_x;
-		lastpose.at(POSE_Y) += delta_y;
-		lastpose.at(POSE_THETA) += delta_th;
+		parent->lastpose.at(POSE_X) += delta_x;
+		parent->lastpose.at(POSE_Y) += delta_y;
+		parent->lastpose.at(POSE_THETA) += delta_th;
 
 		double tx,ty,ttheta;
-		nh.getParam("initial_x", tx);
-		nh.getParam("initial_y", ty);
-		nh.getParam("initial_theta", ttheta);
+		parent->nh.getParam("initial_x", tx);
+		parent->nh.getParam("initial_y", ty);
+		parent->nh.getParam("initial_theta", ttheta);
 	
 		//ROS_INFO("Calculated pose x y: %f %f", lastpose.at(0), lastpose.at(1));
 
-		tf::Quaternion q = tf::createQuaternionFromRPY(0, 0, lastpose.at(POSE_THETA));
+		tf::Quaternion q = tf::createQuaternionFromRPY(0, 0, parent->lastpose.at(POSE_THETA));
 
 		odom.header.stamp = time_now;
 		
-		odom.header.frame_id = turtlename + std::string("_odom");
-		odom.child_frame_id = turtlename + std::string("_base_link");
+		odom.header.frame_id = parent->turtlename + std::string("_odom");
+		odom.child_frame_id = parent->turtlename + std::string("_base_link");
 
 	
-		odom.pose.pose.position.x = lastpose.at(POSE_X);
-		odom.pose.pose.position.y = lastpose.at(POSE_Y);
+		odom.pose.pose.position.x = parent->lastpose.at(POSE_X);
+		odom.pose.pose.position.y = parent->lastpose.at(POSE_Y);
 		odom.pose.pose.position.z = 0;
 		ps.pose.position = odom.pose.pose.position;
 
@@ -266,39 +259,40 @@ namespace task1_pkg {
 		odom.pose.pose.orientation.w = q[3];
 		ps.pose.orientation = odom.pose.pose.orientation;
 
-		odom.twist.twist = twist;
-		odompub.publish(odom);
+		odom.twist.twist = parent->latesttwist;
+		parent->odompub.publish(odom);
 
 		ps.header.stamp = time_now;
-		ps.header.frame_id = turtlename + std::string("_base_link");
+		ps.header.frame_id = parent->turtlename + std::string("_base_link");
 
-		posepub.publish(ps);
+		parent->posepub.publish(ps);
 
 
 		/*
 			After we create separate thread we may uncomment this lines to send the transformation of odometry
 		*/
-		br.sendTransform(tf::StampedTransform(gpstransform, time_now, "map", turtlename+std::string("_odom")));
-#if 0
-  		transform_bs.setOrigin( tf::Vector3(lastpose.at(POSE_X), lastpose.at(POSE_Y), 0.0) );
+		br.sendTransform(tf::StampedTransform(parent->gpstransform, time_now, "map", parent->turtlename+std::string("_odom")));
+#if 1
+  		transform_bs.setOrigin( tf::Vector3(parent->lastpose.at(POSE_X), parent->lastpose.at(POSE_Y), 0.0) );
   		transform_bs.setRotation(q);  		
-  		br.sendTransform(tf::StampedTransform(transform_bs, time_now, turtlename + std::string("_odom"), turtlename + std::string("_base_link")));
+  		br.sendTransform(tf::StampedTransform(transform_bs, time_now, parent->turtlename + std::string("_odom"), parent->turtlename + std::string("_base_link")));
 #endif
-  		odomcount++;
-  		dt = time_now.toSec();
-  		
+  		parent->odomcount++;
+  		parent->dt = time_now.toSec();
 	}
-	
+
+	void TurtleSine::toPolar(sensor_msgs::PointCloud &in, std::vector<double> &alpha, std::vector<double> &r) const {
+
+		for (int i=0;i<in.points.size();i++){
+			r[i] = (sqrt((in.points[i].x * in.points[i].x)  + (in.points[i].y * in.points[i].y)));
+			alpha[i] = (atan2(in.points[i].y, in.points[i].x));
+		}
+
+	}
+
 	void TurtleSine::onInit()
 	{
-		NODELET_DEBUG("Initializing nodelet...");
-		pubsine = nh.advertise<geometry_msgs::Twist>("cmd_vel", 1000);
-		clienttelep = nh.serviceClient<turtlesim::TeleportAbsolute>("teleport_absolute"); 
-		spawn = nh.serviceClient<turtlesim::Spawn>("spawn"); 
-		timer = nh.createTimer(ros::Duration(TIME_DT), boost::bind(&TurtleSine::timerCallback, this));
-		odompub = nh.advertise<nav_msgs::Odometry>("odometry", 1000);
-		kill = nh.serviceClient<turtlesim::Kill>("/task1/kill");
-		lastpose.resize(3);
+
 	}
 
 }

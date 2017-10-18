@@ -62,16 +62,67 @@ namespace task1_pkg {
 			
 
 		};
-		//Timer call back from boost bind
-		static void timerCallback(TurtleSine *obj);
+
+		class TimerBaseListener
+		{
+			
+  			public:
+  				
+  				TimerBaseListener() = default;
+  				 
+  				virtual ~TimerBaseListener() = default;
+  				TimerBaseListener(const TimerBaseListener&) = delete;
+				TimerBaseListener& operator= (const TimerBaseListener&) = delete; //copy assignment operator
+				TimerBaseListener(TimerBaseListener&&) =delete; //move constructor
+				TimerBaseListener& operator=(TimerBaseListener&&) = delete; //move assignment operator
+
+			protected:
+				TimerBaseListener(TurtleSine *p);
+  				virtual void timerCallback(const ros::TimerEvent& e) = 0;
+				TurtleSine *parent;
+				ros::TimerEvent lastevent;
+			
+
+		};
+
+		class TwistTimerListener : protected TimerBaseListener{
+		
+			public:
+				TwistTimerListener(TurtleSine *p);
+				TwistTimerListener() = default;
+  				 
+  				virtual ~TwistTimerListener() = default;
+  				TwistTimerListener(const TwistTimerListener&) = delete;
+				TwistTimerListener& operator= (const TwistTimerListener&) = delete; //copy assignment operator
+				TwistTimerListener(TwistTimerListener&&) =delete; //move constructor
+				TwistTimerListener& operator=(TwistTimerListener&&) = delete; //move assignment operator
+
+				virtual void timerCallback(const ros::TimerEvent& e);
+
+			
+		};
+
+		class OdomTimerListener : protected TimerBaseListener{
+		
+			public:
+				OdomTimerListener(TurtleSine *p);
+				OdomTimerListener() = default;
+  				 
+  				virtual ~OdomTimerListener() = default;
+  				OdomTimerListener(const OdomTimerListener&) = delete;
+				OdomTimerListener& operator= (const OdomTimerListener&) = delete; //copy assignment operator
+				OdomTimerListener(OdomTimerListener&&) =delete; //move constructor
+				OdomTimerListener& operator=(OdomTimerListener&&) = delete; //move assignment operator
+
+				virtual void timerCallback(const ros::TimerEvent& e);
+
+			
+		};
 
 		static void odomCallback(TurtleSine *obj);
 
 		//Conditional variable callback 
 		static void simWait(TurtleSine *obj);
-
-		//Odometry calculation method
-		void poseCalculate(const geometry_msgs::Twist &twist);
 
 		void toPolar(sensor_msgs::PointCloud &in, std::vector<double> &alpha, std::vector<double> &r) const;
 
@@ -96,10 +147,13 @@ namespace task1_pkg {
 		pthread_mutex_t var=PTHREAD_MUTEX_INITIALIZER;
 
 		//Turtle main timer for sending twists
-		ros::Timer timer;
+		TwistTimerListener twisttimerlistener;
+		ros::Timer twisttimer;
+		
 
 		//Odometry integration timer
-		ros::Timer timerodom;
+		OdomTimerListener odomtimerlistener;
+		ros::Timer odomtimer;
 
 		//Letest twist
 		geometry_msgs::Twist latesttwist;
