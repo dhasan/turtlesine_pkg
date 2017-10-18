@@ -9,58 +9,56 @@
 
 	const std::string Mapsim::node_name = "mapsim";
 
-	Mapsim::MapTimerListener::MapTimerListener(Mapsim *p) : TimerBaseListener(p){}
-	Mapsim::TimerBaseListener::TimerBaseListener(Mapsim *p) : parent(p){}
+	Mapsim::MapTimerListener::MapTimerListener(Mapsim *p, double dur) : TimerBaseListener(p, dur){}
+	Mapsim::TimerBaseListener::TimerBaseListener(Mapsim *p, double dur) : parent(p), duration(dur){}
 
 	Mapsim::Mapsim(ros::NodeHandle &n): nh(n), 
-		timerlistener(this), timer(nh.createTimer(ros::Duration(TIME_DT), &MapTimerListener::timerCallback, &timerlistener)),
+		timerlistener(new MapTimerListener(this, TIME_DT)), timer(nh.createTimer(ros::Duration(timerlistener->getDuration()), &TimerBaseListener::timerCallback, timerlistener)),
 		pcpub(nh.advertise<sensor_msgs::PointCloud>("walls", 1000)){
 
 		
 
 	}
 
-	Mapsim::Mapsim(): nh(getPrivateNodeHandle()){
+	Mapsim::Mapsim(): nh(getPrivateNodeHandle())
+	{
 
 	}
 
-	void Mapsim::onInit(){
+	void Mapsim::onInit()
+	{
 
 	}
 
-	void Mapsim::MapTimerListener::timerCallback(const ros::TimerEvent& e){
+	void Mapsim::MapTimerListener::timerCallback(const ros::TimerEvent& e)
+	{
 
 		geometry_msgs::Point32 point;
 
 		parent->pc.header.frame_id = "map";
 		
 		
-  		for (int i = 0; i<100; i++){
-  			
-  			
-  			point.x = i * 11.08/100;
-  			point.y = 0;
-  			point.z = 0;
-  			parent->pc.points.push_back(point);
-  			point.x = i * 11.08/100;
-  			point.y = 11.08;
-  			point.z = 0;
-  			parent->pc.points.push_back(point);
-  			point.x = 0;
-  			point.y = i * 11.08/100;
-  			point.z = 0;
-  			parent->pc.points.push_back(point);
-  			point.x = 11.08;
-  			point.y = i * 11.08/100;
-  			point.z = 0;
-  			parent->pc.points.push_back(point);
-  		}
-
-  		parent->pcpub.publish(parent->pc);
-
-  		parent->pc.points.resize(0);
+		for (int i = 0; i<100; i++){
+			point.x = i * 11.08/100;
+			point.y = 0;
+			point.z = 0;
+			parent->pc.points.push_back(point);
+			point.x = i * 11.08/100;
+			point.y = 11.08;
+			point.z = 0;
+			parent->pc.points.push_back(point);
+			point.x = 0;
+			point.y = i * 11.08/100;
+			point.z = 0;
+			parent->pc.points.push_back(point);
+			point.x = 11.08;
+			point.y = i * 11.08/100;
+			point.z = 0;
+			parent->pc.points.push_back(point);
+		}
+		parent->pcpub.publish(parent->pc);
+		parent->pc.points.resize(0);
 	}
-	
 
 /* } */
 

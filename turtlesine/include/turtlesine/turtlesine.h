@@ -16,11 +16,11 @@
 #define		POSE_Y		(1)
 #define		POSE_THETA	(2)
 
-#define 	TIME_DT 	(0.9)
+#define 	TIME_DT_TWIST 	(0.9)
+#define 	TIME_DT_ODOM 	(0.01)
+#define 	TIME_DT_FOLOW	(0.1)
 
-#define 	TIME_DTODOM 	(1.0/100)
-
-//#define M_PI 3.14159265358979323846
+#define 		SIMULATE_GPS
 
 namespace task1_pkg {
 	class TurtleSine : public nodelet::Nodelet
@@ -28,106 +28,131 @@ namespace task1_pkg {
 
 
 	public:
+		
+		static const std::string node_name;
+
 		virtual void onInit();
 
-		static const std::string node_name;
+		void poseCallback(const turtlesim::PoseConstPtr& msg);
+
 		TurtleSine(ros::NodeHandle &n);
 
 		//Nodelet is using this constructor, so keeping it non-default.....
 		TurtleSine();
 		virtual ~TurtleSine();
-  		TurtleSine(const TurtleSine&) = delete;
+		TurtleSine(const TurtleSine&) = delete;
 		TurtleSine& operator= (const TurtleSine&) = delete; //copy assignment operator
 		TurtleSine(TurtleSine&&) = delete; //move constructor
 		TurtleSine& operator=(TurtleSine&&) = delete; //move assignment operator
 
 	private:
 
-		class PoseListener
+		class BaseListener
 		{
+			
 			public:
-  				void poseCallback(const turtlesim::PoseConstPtr& msg);
+				
+				BaseListener() = delete;
+				 
+				virtual ~BaseListener() = default;
+				BaseListener(const BaseListener&) = delete;
+				BaseListener& operator= (const BaseListener&) = delete; //copy assignment operator
+				BaseListener(BaseListener&&) =delete; //move constructor
+				BaseListener& operator=(BaseListener&&) = delete; //move assignment operator
+				double getDuration() { return duration;}
+				virtual void timerCallback(const ros::TimerEvent& e) = 0;	
 
-  				PoseListener(TurtleSine *p);
-  				PoseListener() = default;
-  				 
-  				virtual ~PoseListener() = default;
-  				PoseListener(const PoseListener&) = delete;
-				PoseListener& operator= (const PoseListener&) = delete; //copy assignment operator
-				PoseListener(PoseListener&&) =delete; //move constructor
-				PoseListener& operator=(PoseListener&&) = delete; //move assignment operator
+				ros::TimerEvent lastevent; //TODO use setter getter
+			protected:
+				BaseListener(TurtleSine *p, double dur, ros::NodeHandle &n);
+				ros::NodeHandle &nh;	
+
+				double duration;
+				TurtleSine *parent;
+				
 
 			private:
-				TurtleSine *parent;
+				//ROS timer
+				ros::Timer timer;
 			
 
 		};
 
-		class TimerBaseListener
-		{
-			
-  			public:
-  				
-  				TimerBaseListener() = default;
-  				 
-  				virtual ~TimerBaseListener() = default;
-  				TimerBaseListener(const TimerBaseListener&) = delete;
-				TimerBaseListener& operator= (const TimerBaseListener&) = delete; //copy assignment operator
-				TimerBaseListener(TimerBaseListener&&) =delete; //move constructor
-				TimerBaseListener& operator=(TimerBaseListener&&) = delete; //move assignment operator
-
-			protected:
-				TimerBaseListener(TurtleSine *p);
-  				virtual void timerCallback(const ros::TimerEvent& e) = 0;
-				TurtleSine *parent;
-				ros::TimerEvent lastevent;
-			
-
-		};
-
-		class TwistTimerListener : protected TimerBaseListener{
+		class TwistTimerListener : public BaseListener{
 		
 			public:
-				TwistTimerListener(TurtleSine *p);
-				TwistTimerListener() = default;
-  				 
-  				virtual ~TwistTimerListener() = default;
-  				TwistTimerListener(const TwistTimerListener&) = delete;
+				TwistTimerListener(TurtleSine *p, double dur, ros::NodeHandle &nh);
+				TwistTimerListener() = delete;
+				 
+				virtual ~TwistTimerListener() = default;
+				TwistTimerListener(const TwistTimerListener&) = delete;
 				TwistTimerListener& operator= (const TwistTimerListener&) = delete; //copy assignment operator
 				TwistTimerListener(TwistTimerListener&&) =delete; //move constructor
 				TwistTimerListener& operator=(TwistTimerListener&&) = delete; //move assignment operator
 
 				virtual void timerCallback(const ros::TimerEvent& e);
+			
+			private:
+				//counter of twist commands, 
+				int count;
+				
+	
+		};
+
+		class FolowListener : public BaseListener{
+		
+			public:
+				FolowListener(TurtleSine *p, double dur, ros::NodeHandle &nh, std::string topicname);
+				FolowListener() = delete;
+				 
+				virtual ~FolowListener() = default;
+				FolowListener(const FolowListener&) = delete;
+				FolowListener& operator= (const FolowListener&) = delete; //copy assignment operator
+				FolowListener(FolowListener&&) =delete; //move constructor
+				FolowListener& operator=(FolowListener&&) = delete; //move assignment operator
+
+				virtual void timerCallback(const ros::TimerEvent& e);
+
+				void poseCallback(const turtlesim::PoseConstPtr& msg);
+
+			private:
+				ros::Subscriber folowposesub;
 
 			
 		};
 
-		class OdomTimerListener : protected TimerBaseListener{
+		class OdomTimerListener : public BaseListener{
 		
 			public:
-				OdomTimerListener(TurtleSine *p);
-				OdomTimerListener() = default;
-  				 
-  				virtual ~OdomTimerListener() = default;
-  				OdomTimerListener(const OdomTimerListener&) = delete;
+				OdomTimerListener(TurtleSine *p, double dur, ros::NodeHandle &nh);
+				OdomTimerListener() = delete;
+				 
+				virtual ~OdomTimerListener() = default;
+				OdomTimerListener(const OdomTimerListener&) = delete;
 				OdomTimerListener& operator= (const OdomTimerListener&) = delete; //copy assignment operator
 				OdomTimerListener(OdomTimerListener&&) =delete; //move constructor
 				OdomTimerListener& operator=(OdomTimerListener&&) = delete; //move assignment operator
 
 				virtual void timerCallback(const ros::TimerEvent& e);
+				void setLastPose(double x, double y, double theta){lastpose.at(0) = x, lastpose.at(1) = y, lastpose.at(2) = theta;}
+				void odominittransform();
+				int getCount() {return count;}
+				
+				geometry_msgs::Twist latesttwist; //TODO: setter gettor
+			private:
+ 				//Odometry vector storage
+				std::vector<double> lastpose;
+
+				//counter of odometry calculations
+				int count;
 
 			
 		};
-
-		static void odomCallback(TurtleSine *obj);
 
 		//Conditional variable callback 
 		static void simWait(TurtleSine *obj);
 
 		void toPolar(sensor_msgs::PointCloud &in, std::vector<double> &alpha, std::vector<double> &r) const;
-
-		//Time discrete of the turtle
-		double dt;
 
 		//ROS node handle
 		ros::NodeHandle& nh;
@@ -144,19 +169,11 @@ namespace task1_pkg {
 		//Turtle spawn service client
 		ros::ServiceClient spawn;
 
-		pthread_mutex_t var=PTHREAD_MUTEX_INITIALIZER;
-
 		//Turtle main timer for sending twists
-		TwistTimerListener twisttimerlistener;
-		ros::Timer twisttimer;
+		BaseListener *movelistener;
 		
-
 		//Odometry integration timer
-		OdomTimerListener odomtimerlistener;
-		ros::Timer odomtimer;
-
-		//Letest twist
-		geometry_msgs::Twist latesttwist;
+		OdomTimerListener *odomtimerlistener;
 
 		//Turtle odometry publisher
 		ros::Publisher odompub;
@@ -164,12 +181,9 @@ namespace task1_pkg {
 		//Turtle kill service client
 		ros::ServiceClient kill;
 
-		//Depricated
+		//Pose subscriber from turtlesim
 		ros::Subscriber posesub;
-		
-		//Odometry vector storage
-		std::vector<double> lastpose;
-
+	
 		//Name of the turtle
 		std::string turtlename;
 
@@ -177,12 +191,9 @@ namespace task1_pkg {
 		std::condition_variable cv;
 		std::thread thread;
 
-		//Pose listener
-		PoseListener poselistener;
-
 		tf::TransformListener tflistener;
 
-		int count,odomcount;
+		
 	
 	};
 

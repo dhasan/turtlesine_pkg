@@ -96,9 +96,6 @@
 		//Laser scan
 		sensor_msgs::LaserScan ls;
 
-		//Time discrete
-		double dt;
-
 		//TODO: use list for subs and listeners!!!
 		ros::Subscriber turtlessub[10];
 		TurtleListener turtlelisteners[10];

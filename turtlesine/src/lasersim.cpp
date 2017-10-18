@@ -19,11 +19,11 @@
     Lasersim::TurtleListener::TurtleListener(Lasersim *p) : parent(p){}
 
     void Lasersim::TurtleListener::poseCallback(const geometry_msgs::PoseStampedConstPtr &msg){
-        static tf::TransformBroadcaster br;
+    static tf::TransformBroadcaster br;
        
+        bool inrange;
 
-
-        geometry_msgs::PoseStamped transformedpose;
+        geometry_msgs::PoseStamped transformedpose,mappose;
         ros::Time time_now = ros::Time::now();
 
         std::vector<std::string> v;
@@ -47,13 +47,15 @@
         parent->toPolarP(transformedpose.pose.position, alpha, range);
         
         if ((range < parent->ls.range_max) && (alpha>parent->ls.angle_min) && (alpha<parent->ls.angle_max)){
+            inrange = true;
             int index = static_cast<unsigned int>((alpha - parent->ls.angle_min) * (1.0/parent->ls.angle_increment)) % parent->measurments;
 
             if (range < parent->ls.ranges[index]) {
                 parent->ls.ranges[index] = range;
                 parent->ls.intensities[index] = range;
             }
-        }
+        }else
+            inrange = false;
      
 
         //TODO: move this to member area
@@ -66,7 +68,22 @@
             parent->ls.header.stamp = time_now;
             parent->laserscan.publish(parent->ls);
             parent->resetlaser();          
-       }
+        }
+
+        try{
+            parent->tflistener.transformPose("map", *msg, mappose);
+        }catch(tf::TransformException& ex){
+            ROS_ERROR("Received an exception trying to transform a point from \"%s\" to \"%s\": %s", msg->header.frame_id.c_str(), std::string(parent->turtlename +std::string("_")+parent->lasername).c_str(), ex.what());
+        }
+
+        // mappose.pose.position = odom.pose.pose.position;
+        // mappose.pose.orientation = odom.pose.pose.orientation;
+        // mappose.header.stamp = time_now;
+        // mappose.header.frame_id = parent->turtlename + std::string("_base_link");
+
+       // parent->posepub.publish(mappose);
+
+
 
     }
 
@@ -103,8 +120,6 @@
                 ROS_ERROR("init");
             }
         }
-
-        dt =ros::Time::now().toSec();
 
         double amin, amax, rmin, rmax;
         nh.getParam("measurments", measurments);
