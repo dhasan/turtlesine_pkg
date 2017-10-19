@@ -54,7 +54,7 @@ namespace task1_pkg {
 	TurtleSine::TwistTimerListener::TwistTimerListener(TurtleSine *p, double dur, ros::NodeHandle &nh) : BaseListener(p, dur, nh){}
 
 	TurtleSine::FolowListener::FolowListener(TurtleSine *p, double dur, ros::NodeHandle &nh, std::string topicn) : BaseListener(p, dur, nh), follow_frame(topicn),
-		folowposesub(nh.subscribe("/demo/turtletarget", 10, &FolowListener::poseCallback, this)){}
+		folowposesub(nh.subscribe("/demo/turtletarget", 10, &FolowListener::poseCallback, this)){} //TODO: use relative path
 
 	TurtleSine::OdomTimerListener::OdomTimerListener(TurtleSine *p, double dur, ros::NodeHandle &nh) : BaseListener(p, dur, nh), lastpose(3, .0){
 

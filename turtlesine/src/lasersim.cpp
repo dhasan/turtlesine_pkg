@@ -84,7 +84,7 @@
         //TODO: use list for listeners!!!
         turtlelisteners {this, this, this, this, this, this, this, this, this, this}, //Up to 10 turtles can be scanned
         laserscan(nh.advertise<sensor_msgs::LaserScan>("laserscan", 1000)),
-        posepub(nh.advertise<geometry_msgs::PoseStamped>("/demo/turtletarget", 1000)),
+        posepub(nh.advertise<geometry_msgs::PoseStamped>("/demo/turtletarget", 1000)), //TODO: use relative path
 		wallssub(nh.subscribe("walls", 10, &WallsListener::wallsCallback, &wallslistener)){
 
         auto ns = nh.getNamespace();
