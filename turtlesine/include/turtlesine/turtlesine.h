@@ -170,11 +170,9 @@ namespace task1_pkg {
 		//Turtle spawn service client
 		ros::ServiceClient spawn;
 
-		//Turtle main timer for sending twists
-		BaseListener *movelistener;
+		std::unique_ptr<BaseListener> movelistener;
 		
-		//Odometry integration timer
-		OdomTimerListener *odomtimerlistener;
+		std::unique_ptr<OdomTimerListener> odomtimerlistener;
 
 		//Turtle odometry publisher
 		ros::Publisher odompub;

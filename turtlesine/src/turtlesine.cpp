@@ -46,9 +46,6 @@ namespace task1_pkg {
 		kill.call(kill_turtle);
 		ROS_ERROR("KILLING THE TURTLE");
 
-		delete odomtimerlistener;
-		delete movelistener;
-
 	}
 
 	TurtleSine::TwistTimerListener::TwistTimerListener(TurtleSine *p, double dur, ros::NodeHandle &nh) : BaseListener(p, dur, nh){}
@@ -104,6 +101,7 @@ namespace task1_pkg {
 		pubsine(nh.advertise<geometry_msgs::Twist>("cmd_vel", 1000)),
 		clienttelep(nh.serviceClient<turtlesim::TeleportAbsolute>("teleport_absolute")), 
 		spawn(nh.serviceClient<turtlesim::Spawn>("spawn")),
+		movelistener(nullptr),
 		odomtimerlistener(new OdomTimerListener(this, TIME_DT_ODOM, nh)), 
 		odompub(nh.advertise<nav_msgs::Odometry>("odometry", 1000)),
 		posepub(nh.advertise<geometry_msgs::PoseStamped>("stampedpose", 1000)),
@@ -124,9 +122,9 @@ namespace task1_pkg {
 		nh.getParam("follow_frame", follow_frame);
 
 		if (follow_frame.size()>0){
-			movelistener = new FolowListener(this, TIME_DT_FOLOW, nh, follow_frame);
+			movelistener = std::unique_ptr<BaseListener>(new FolowListener(this, TIME_DT_FOLOW, nh, follow_frame));
 		}else{
-			movelistener = new TwistTimerListener(this, TIME_DT_TWIST, nh);
+			movelistener = std::unique_ptr<BaseListener>(new TwistTimerListener(this, TIME_DT_TWIST, nh));
 		}
 
 		auto ns = nh.getNamespace();
@@ -182,7 +180,7 @@ namespace task1_pkg {
 		double angle, range;
 		geometry_msgs::Twist twist;
 
-		ros::Time time_now = ros::Time::now();
+		auto time_now = ros::Time::now();
 
 		if (follow_frame.compare(msg->header.frame_id)){
 			return;
@@ -259,22 +257,22 @@ namespace task1_pkg {
 
 		geometry_msgs::PoseStamped ps;
 
-		double dt = e.current_real.toSec() - e.last_real.toSec();
+		auto dt = e.current_real.toSec() - e.last_real.toSec();
 		
 		static tf::TransformBroadcaster br;
 		tf::Transform transform_bs;
 		tf::StampedTransform maptransform;
 		ros::Time time_now = ros::Time::now();
 
-		double vx = latesttwist.linear.x;
-		double vy = latesttwist.linear.y; 
-		double th = latesttwist.angular.z;
+		auto vx = latesttwist.linear.x;
+		auto vy = latesttwist.linear.y; 
+		auto th = latesttwist.angular.z;
 	
-		double thi = lastpose.at(POSE_THETA); //initial angle
+		auto thi = lastpose.at(POSE_THETA); //initial angle
 	
-		double delta_x = (vx * cos(thi) - vy * sin(thi)) * dt;
-		double delta_y = (vx * sin(thi) + vy * cos(thi)) * dt;
-		double delta_th = th * dt;
+		auto delta_x = (vx * cos(thi) - vy * sin(thi)) * dt;
+		auto delta_y = (vx * sin(thi) + vy * cos(thi)) * dt;
+		auto delta_th = th * dt;
 	
 		lastpose.at(POSE_X) += delta_x;
 		lastpose.at(POSE_Y) += delta_y;
