@@ -198,7 +198,7 @@ namespace task1_pkg {
         try{
             parent->tflistener.transformPose(parent->turtlename+std::string("_base_link"), *msg, transformedpose);
         }catch(tf::TransformException& ex){
-            //ROS_ERROR("Received an exception trying to transform a point from \"%s\" to \"%s\": %s", msg->header.frame_id.c_str(), std::string(parent->turtlename+std::string("_base_link")).c_str(), ex.what());
+            ROS_ERROR("Received an exception trying to transform a point from \"%s\" to \"%s\": %s", msg->header.frame_id.c_str(), std::string(parent->turtlename+std::string("_base_link")).c_str(), ex.what());
         }
 
         parent->toPolarP(transformedpose.pose.position, angle, range);
@@ -212,6 +212,7 @@ namespace task1_pkg {
 		twist.angular.z = angle;
 		
 		parent->pubsine.publish(twist);
+		parent->odomtimerlistener->latesttwist = twist;
 
 	}
 	
