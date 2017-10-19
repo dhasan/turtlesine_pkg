@@ -107,6 +107,8 @@
                 char buff[16];
 
                 sprintf(buff, "stampedpose%d", i+1);
+
+                //TODO: move this to liseners class initializer list!!
                 turtlessub[i] = nh.subscribe(buff, 10, &TurtleListener::poseCallback, &turtlelisteners[i]);
                 ROS_ERROR("init");
             }
