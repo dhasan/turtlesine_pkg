@@ -70,17 +70,6 @@
             parent->resetlaser();          
         }
         if (inrange){
-          //  try{
-           //     parent->tflistener.transformPose("map", *msg, mappose);
-           // }catch(tf::TransformException& ex){
-           //     ROS_ERROR("Received an exception trying to transform a point from \"%s\" to \"%s\": %s", msg->header.frame_id.c_str(), std::string(parent->turtlename +std::string("_")+parent->lasername).c_str(), ex.what());
-           // }
-
-            // mappose.pose.position = odom.pose.pose.position;
-            // mappose.pose.orientation = odom.pose.pose.orientation;
-            // mappose.header.stamp = time_now;
-            // mappose.header.frame_id = parent->turtlename + std::string("_base_link");
-
             parent->posepub.publish(*msg);
         }
 

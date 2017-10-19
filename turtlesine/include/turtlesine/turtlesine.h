@@ -153,7 +153,6 @@ namespace task1_pkg {
 		//Conditional variable callback 
 		static void simWait(TurtleSine *obj);
 
-//		void toPolar(sensor_msgs::PointCloud &in, std::vector<double> &alpha, std::vector<double> &r) const;
 		void toPolarP(const geometry_msgs::Point &in, double &alpha, double &r) const;
 
 		//ROS node handle
@@ -195,8 +194,6 @@ namespace task1_pkg {
 
 		tf::TransformListener tflistener;
 
-		
-	
 	};
 
 

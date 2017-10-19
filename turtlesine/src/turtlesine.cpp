@@ -154,7 +154,6 @@ namespace task1_pkg {
 				spawn_turtle.request.theta = ttheta;
 				spawn_turtle.request.name = turtlename;
 				spawn.call(spawn_turtle);
-				//std::cout << "spawn NAMESPACE: "<< ns<<" NAME: " <<turtlename<<std::endl;
 			}
 		}else{
 			telep.request.x = tx;
@@ -328,17 +327,7 @@ namespace task1_pkg {
 		count++;
 
 	}
-#if 0
-	void TurtleSine::toPolar(sensor_msgs::PointCloud &in, std::vector<double> &alpha, std::vector<double> &r) const 
-	{
 
-		for (int i=0;i<in.points.size();i++){
-			r[i] = (sqrt((in.points[i].x * in.points[i].x)  + (in.points[i].y * in.points[i].y)));
-			alpha[i] = (atan2(in.points[i].y, in.points[i].x));
-		}
-
-	}
-#endif
 	void TurtleSine::onInit()
 	{
 
