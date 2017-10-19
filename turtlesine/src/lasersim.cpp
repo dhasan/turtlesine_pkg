@@ -69,19 +69,20 @@
             parent->laserscan.publish(parent->ls);
             parent->resetlaser();          
         }
+        if (inrange){
+          //  try{
+           //     parent->tflistener.transformPose("map", *msg, mappose);
+           // }catch(tf::TransformException& ex){
+           //     ROS_ERROR("Received an exception trying to transform a point from \"%s\" to \"%s\": %s", msg->header.frame_id.c_str(), std::string(parent->turtlename +std::string("_")+parent->lasername).c_str(), ex.what());
+           // }
 
-        try{
-            parent->tflistener.transformPose("map", *msg, mappose);
-        }catch(tf::TransformException& ex){
-            ROS_ERROR("Received an exception trying to transform a point from \"%s\" to \"%s\": %s", msg->header.frame_id.c_str(), std::string(parent->turtlename +std::string("_")+parent->lasername).c_str(), ex.what());
+            // mappose.pose.position = odom.pose.pose.position;
+            // mappose.pose.orientation = odom.pose.pose.orientation;
+            // mappose.header.stamp = time_now;
+            // mappose.header.frame_id = parent->turtlename + std::string("_base_link");
+
+            parent->posepub.publish(*msg);
         }
-
-        // mappose.pose.position = odom.pose.pose.position;
-        // mappose.pose.orientation = odom.pose.pose.orientation;
-        // mappose.header.stamp = time_now;
-        // mappose.header.frame_id = parent->turtlename + std::string("_base_link");
-
-       // parent->posepub.publish(mappose);
 
 
 
@@ -94,10 +95,11 @@
         //TODO: use list for listeners!!!
         turtlelisteners {this, this, this, this, this, this, this, this, this, this}, //Up to 10 turtles can be scanned
         laserscan(nh.advertise<sensor_msgs::LaserScan>("laserscan", 1000)),
+        posepub(nh.advertise<geometry_msgs::PoseStamped>("/demo/turtletarget", 1000)),
 		wallssub(nh.subscribe("walls", 10, &WallsListener::wallsCallback, &wallslistener)){
 
         auto ns = nh.getNamespace();
-        int pos = ns.find_last_of('/');
+        auto pos = ns.find_last_of('/');
         std::string res = ns.substr(pos + 1);
         std::vector<std::string> v;
         boost::split(v, res, [](char c){return c == '_';});

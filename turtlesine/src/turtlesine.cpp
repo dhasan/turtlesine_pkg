@@ -53,8 +53,8 @@ namespace task1_pkg {
 
 	TurtleSine::TwistTimerListener::TwistTimerListener(TurtleSine *p, double dur, ros::NodeHandle &nh) : BaseListener(p, dur, nh){}
 
-	TurtleSine::FolowListener::FolowListener(TurtleSine *p, double dur, ros::NodeHandle &nh, std::string topicn) : BaseListener(p, dur, nh),
-		folowposesub(nh.subscribe(topicn, 10, &FolowListener::poseCallback, this)){}
+	TurtleSine::FolowListener::FolowListener(TurtleSine *p, double dur, ros::NodeHandle &nh, std::string topicn) : BaseListener(p, dur, nh), follow_frame(topicn),
+		folowposesub(nh.subscribe("/demo/turtletarget", 10, &FolowListener::poseCallback, this)){}
 
 	TurtleSine::OdomTimerListener::OdomTimerListener(TurtleSine *p, double dur, ros::NodeHandle &nh) : BaseListener(p, dur, nh), lastpose(3, .0){
 
@@ -109,20 +109,23 @@ namespace task1_pkg {
 		posepub(nh.advertise<geometry_msgs::PoseStamped>("stampedpose", 1000)),
 		kill(nh.serviceClient<turtlesim::Kill>("kill")),
 		posesub(nh.subscribe("pose", 10, &TurtleSine::poseCallback, this))
-		//lastpose(3, .0)
+
 		
 	{
 		turtlesim::TeleportAbsolute telep;
 		static tf::TransformBroadcaster br;
 		
+		std::string follow_frame;
+
 		double tx,ty,ttheta;
 		nh.getParam("initial_x", tx);
 		nh.getParam("initial_y", ty);
 		nh.getParam("initial_theta", ttheta);
+		nh.getParam("follow_frame", follow_frame);
 
-		/*If folower*/{
-			//movelistener = new FolowListener(this, TIME_DT_FOLOW, nh, "posetopic");
-		}/*else*/{
+		if (follow_frame.size()>0){
+			movelistener = new FolowListener(this, TIME_DT_FOLOW, nh, follow_frame);
+		}else{
 			movelistener = new TwistTimerListener(this, TIME_DT_TWIST, nh);
 		}
 
@@ -151,7 +154,7 @@ namespace task1_pkg {
 				spawn_turtle.request.theta = ttheta;
 				spawn_turtle.request.name = turtlename;
 				spawn.call(spawn_turtle);
-				std::cout << "spawn NAMESPACE: "<< ns<<" NAME: " <<turtlename<<std::endl;
+				//std::cout << "spawn NAMESPACE: "<< ns<<" NAME: " <<turtlename<<std::endl;
 			}
 		}else{
 			telep.request.x = tx;
@@ -169,7 +172,46 @@ namespace task1_pkg {
 
 	}
 
-	void TurtleSine::FolowListener::poseCallback(const turtlesim::PoseConstPtr& msg){
+	void TurtleSine::toPolarP(const geometry_msgs::Point &in, double &alpha, double &r) const {
+        r= sqrt((in.x * in.x)  + (in.y * in.y));
+        alpha = atan2(in.y, in.x);
+    }
+
+	void TurtleSine::FolowListener::poseCallback(const geometry_msgs::PoseStampedConstPtr& msg){
+
+		geometry_msgs::PoseStamped transformedpose;
+		double angle, range;
+		geometry_msgs::Twist twist;
+
+		ros::Time time_now = ros::Time::now();
+
+		if (follow_frame.compare(msg->header.frame_id)){
+			return;
+		}
+
+		try{
+             parent->tflistener.waitForTransform(parent->turtlename+std::string("_base_link"), msg->header.frame_id, time_now, ros::Duration(0.01));
+        }catch(tf::TransformException& ex){
+            ROS_ERROR("Wait an exception trying to transform a point from \"%s\" to \"%s\": %s",  "map", std::string(parent->turtlename+std::string("_base_link")).c_str(), ex.what());
+        }
+
+        try{
+            parent->tflistener.transformPose(parent->turtlename+std::string("_base_link"), *msg, transformedpose);
+        }catch(tf::TransformException& ex){
+            //ROS_ERROR("Received an exception trying to transform a point from \"%s\" to \"%s\": %s", msg->header.frame_id.c_str(), std::string(parent->turtlename+std::string("_base_link")).c_str(), ex.what());
+        }
+
+        parent->toPolarP(transformedpose.pose.position, angle, range);
+
+        twist.linear.x = range;
+		twist.linear.y = 0;
+		twist.linear.z = 0;
+	
+		twist.angular.x = 0;
+		twist.angular.y = 0;
+		twist.angular.z = angle;
+		
+		parent->pubsine.publish(twist);
 
 	}
 	
@@ -283,9 +325,9 @@ namespace task1_pkg {
 		br.sendTransform(tf::StampedTransform(transform_bs, time_now, parent->turtlename + std::string("_odom"), parent->turtlename + std::string("_base_link")));
 #endif
 		count++;
-		//parent->dt = time_now.toSec();
-	}
 
+	}
+#if 0
 	void TurtleSine::toPolar(sensor_msgs::PointCloud &in, std::vector<double> &alpha, std::vector<double> &r) const 
 	{
 
@@ -295,7 +337,7 @@ namespace task1_pkg {
 		}
 
 	}
-
+#endif
 	void TurtleSine::onInit()
 	{
 

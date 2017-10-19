@@ -20,7 +20,7 @@
 #define 	TIME_DT_ODOM 	(0.01)
 #define 	TIME_DT_FOLOW	(0.1)
 
-#define 		SIMULATE_GPS
+#undef 		SIMULATE_GPS
 
 namespace task1_pkg {
 	class TurtleSine : public nodelet::Nodelet
@@ -113,10 +113,11 @@ namespace task1_pkg {
 
 				virtual void timerCallback(const ros::TimerEvent& e);
 
-				void poseCallback(const turtlesim::PoseConstPtr& msg);
+				void poseCallback(const geometry_msgs::PoseStampedConstPtr& msg);
 
 			private:
 				ros::Subscriber folowposesub;
+				std::string follow_frame;
 
 			
 		};
@@ -152,7 +153,8 @@ namespace task1_pkg {
 		//Conditional variable callback 
 		static void simWait(TurtleSine *obj);
 
-		void toPolar(sensor_msgs::PointCloud &in, std::vector<double> &alpha, std::vector<double> &r) const;
+//		void toPolar(sensor_msgs::PointCloud &in, std::vector<double> &alpha, std::vector<double> &r) const;
+		void toPolarP(const geometry_msgs::Point &in, double &alpha, double &r) const;
 
 		//ROS node handle
 		ros::NodeHandle& nh;

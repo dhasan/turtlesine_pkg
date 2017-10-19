@@ -93,6 +93,8 @@
         <arg name="turtlename" default="turtle2"/>
     
         <node pkg="turtlesine" name="$(arg turtlename)" type="turtlesine">
+
+            <param name="follow_frame" value="turtle1_base_link" type="str" />
            
             <param name="a_speed" value="1.44" type="double" />
             <param name="l_speed" value="1.44" type="double" />
@@ -114,7 +116,7 @@
             <param name="angle_min" value="-0.52359" type="double" />
             <param name="angle_max" value="0.52359" type="double" />
             <param name="range_min" value="0.05" type="double" />
-            <param name="range_max" value="3.0" type="double" />
+            <param name="range_max" value="6.0" type="double" />
             <param name="turtles_cnt" value="2" type="int" />
 
             <remap from="~walls" to="$(arg ns)/sim/mapsim/walls" />
@@ -127,7 +129,7 @@
             <param name="angle_min" value="-0.52359" type="double" />
             <param name="angle_max" value="0.52359" type="double" />
             <param name="range_min" value="0.05" type="double" />
-            <param name="range_max" value="3.0" type="double" />
+            <param name="range_max" value="6.0" type="double" />
             <param name="turtles_cnt" value="2" type="int" />
 
             <remap from="~walls" to="$(arg ns)/sim/mapsim/walls" />
@@ -140,7 +142,7 @@
             <param name="angle_min" value="-0.52359" type="double" />
             <param name="angle_max" value="0.52359" type="double" />
             <param name="range_min" value="0.05" type="double" />
-            <param name="range_max" value="3.0" type="double" />
+            <param name="range_max" value="6.0" type="double" />
             <param name="turtles_cnt" value="2" type="int" />
 
             <remap from="~walls" to="$(arg ns)/sim/mapsim/walls" />
@@ -153,7 +155,7 @@
             <param name="angle_min" value="-0.52359" type="double" />
             <param name="angle_max" value="0.52359" type="double" />
             <param name="range_min" value="0.05" type="double" />
-            <param name="range_max" value="3.0" type="double" />
+            <param name="range_max" value="6.0" type="double" />
             <param name="turtles_cnt" value="2" type="int" />
 
             <remap from="~walls" to="$(arg ns)/sim/mapsim/walls" />

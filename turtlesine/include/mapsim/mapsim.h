@@ -47,10 +47,14 @@
 				virtual void timerCallback(const ros::TimerEvent& e) = 0;	
 
 			protected:
-				TimerBaseListener(Mapsim *p, double dur);
+				TimerBaseListener(Mapsim *p, double dur, ros::NodeHandle &n);
+				ros::NodeHandle &nh;
 				double duration;
 				Mapsim *parent;
-				ros::TimerEvent lastevent;
+			
+			private:
+				ros::Timer timer;
+				
 			
 
 		};
@@ -58,7 +62,7 @@
 		class MapTimerListener : public TimerBaseListener{
 		
 			public:
-				MapTimerListener(Mapsim *p, double dur);
+				MapTimerListener(Mapsim *p, double dur, ros::NodeHandle &n);
 				MapTimerListener() = default;
 				
 				virtual ~MapTimerListener() = default;
@@ -68,6 +72,7 @@
 				MapTimerListener& operator=(MapTimerListener&&) = delete; //move assignment operator
 
 				virtual void timerCallback(const ros::TimerEvent& e);
+
 
 			
 		};
@@ -81,7 +86,7 @@
 		sensor_msgs::PointCloud pc;
 
 		TimerBaseListener *timerlistener;
-		ros::Timer timer;
+		
 
 	
 
