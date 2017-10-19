@@ -15,7 +15,8 @@ find_package(catkin REQUIRED COMPONENTS
   tf
   pcl_conversions
   pcl_ros
-  sensor_msgs 
+  sensor_msgs
+  pluginlib_turtle_move
 
 )
 

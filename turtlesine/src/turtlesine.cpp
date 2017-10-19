@@ -19,6 +19,8 @@
 #include <tf/tf.h>
 #include <math.h>
 
+#include <pluginlib/class_loader.h>
+
 #include <pthread.h>
 
 PLUGINLIB_EXPORT_CLASS(task1_pkg::TurtleSine, nodelet::Nodelet)
@@ -48,10 +50,12 @@ namespace task1_pkg {
 
 	}
 
-	TurtleSine::TwistTimerListener::TwistTimerListener(TurtleSine *p, double dur, ros::NodeHandle &nh) : BaseListener(p, dur, nh){}
-
-	TurtleSine::FolowListener::FolowListener(TurtleSine *p, double dur, ros::NodeHandle &nh, std::string topicn) : BaseListener(p, dur, nh), follow_frame(topicn),
-		folowposesub(nh.subscribe("/demo/turtletarget", 10, &FolowListener::poseCallback, this)){} //TODO: use relative path
+	TurtleSine::BaseListener::BaseListener(TurtleSine *p, double dur, ros::NodeHandle &n) : 
+		nh(n),
+		parent(p), 
+		duration(dur), 
+		timer(nh.createTimer(ros::Duration(dur), &BaseListener::timerCallback, this))
+		{}
 
 	TurtleSine::OdomTimerListener::OdomTimerListener(TurtleSine *p, double dur, ros::NodeHandle &nh) : BaseListener(p, dur, nh), lastpose(3, .0){
 
@@ -62,11 +66,6 @@ namespace task1_pkg {
 
 		br.sendTransform(tf::StampedTransform(tf::Transform(tf::Quaternion(0, 0, 0, 1), tf::Vector3(0.0, 0.0, 0.0)), ros::Time::now(), parent->turtlename+std::string("_odom"), parent->turtlename+std::string("_base_link")));
 	}
-	TurtleSine::BaseListener::BaseListener(TurtleSine *p, double dur, ros::NodeHandle &n) : 
-		nh(n),
-		parent(p), 
-		duration(dur), 
-		timer(nh.createTimer(ros::Duration(dur), &BaseListener::timerCallback, this)){}
 
 	void TurtleSine::poseCallback(const turtlesim::PoseConstPtr& msg){
 		
@@ -121,15 +120,23 @@ namespace task1_pkg {
 		nh.getParam("initial_theta", ttheta);
 		nh.getParam("follow_frame", follow_frame);
 
-		if (follow_frame.size()>0){
-			movelistener = std::unique_ptr<BaseListener>(new FolowListener(this, TIME_DT_FOLOW, nh, follow_frame));
-		}else{
-			movelistener = std::unique_ptr<BaseListener>(new TwistTimerListener(this, TIME_DT_TWIST, nh));
-		}
-
 		auto ns = nh.getNamespace();
 		auto pos = ns.find_last_of('/');
 		turtlename = ns.substr(pos + 1);
+
+		pluginlib::ClassLoader<move_base::BaseListener> move_loader("pluginlib_turtle_move", "move_base::BaseListener");
+
+		if (follow_frame.size()>0){
+			movelistener = move_loader.createInstance("move_plugins::FolowListener");
+			dynamic_cast<move_plugins::FolowListener*>(movelistener.get())->initialize(TIME_DT_FOLOW, nh);
+			dynamic_cast<move_plugins::FolowListener*>(movelistener.get())->setnames(follow_frame, turtlename);
+		}else{
+			movelistener = move_loader.createInstance("move_plugins::TwistTimerListener");
+			dynamic_cast<move_plugins::TwistTimerListener*>(movelistener.get())->initialize(TIME_DT_FOLOW, nh);
+		}
+		//TODO: move start method to follow initializer
+		movelistener->start();
+
 
 		odomtimerlistener->odominittransform();
 
@@ -173,81 +180,6 @@ namespace task1_pkg {
         r= sqrt((in.x * in.x)  + (in.y * in.y));
         alpha = atan2(in.y, in.x);
     }
-
-	void TurtleSine::FolowListener::poseCallback(const geometry_msgs::PoseStampedConstPtr& msg){
-
-		geometry_msgs::PoseStamped transformedpose;
-		double angle, range;
-		geometry_msgs::Twist twist;
-
-		auto time_now = ros::Time::now();
-
-		if (follow_frame.compare(msg->header.frame_id)){
-			return;
-		}
-
-		try{
-             parent->tflistener.waitForTransform(parent->turtlename+std::string("_base_link"), msg->header.frame_id, time_now, ros::Duration(0.01));
-        }catch(tf::TransformException& ex){
-            ROS_ERROR("Wait an exception trying to transform a point from \"%s\" to \"%s\": %s",  "map", std::string(parent->turtlename+std::string("_base_link")).c_str(), ex.what());
-        }
-
-        try{
-            parent->tflistener.transformPose(parent->turtlename+std::string("_base_link"), *msg, transformedpose);
-        }catch(tf::TransformException& ex){
-            ROS_ERROR("Received an exception trying to transform a point from \"%s\" to \"%s\": %s", msg->header.frame_id.c_str(), std::string(parent->turtlename+std::string("_base_link")).c_str(), ex.what());
-        }
-
-        parent->toPolarP(transformedpose.pose.position, angle, range);
-
-        twist.linear.x = range;
-		twist.linear.y = 0;
-		twist.linear.z = 0;
-	
-		twist.angular.x = 0;
-		twist.angular.y = 0;
-		twist.angular.z = angle;
-		
-		parent->pubsine.publish(twist);
-		parent->odomtimerlistener->latesttwist = twist;
-
-	}
-	
-	void TurtleSine::FolowListener::timerCallback(const ros::TimerEvent& e)
-	{
-		lastevent = e;
-	}
-	
-	void TurtleSine::TwistTimerListener::timerCallback(const ros::TimerEvent& e)
-	{
-		geometry_msgs::Twist twist;
-		lastevent = e;
-		double as,ls;
-		parent->nh.getParam("a_speed", as);
-		parent->nh.getParam("l_speed", ls);
-
-		ros::TimerEvent odomeevent;
-		odomeevent.current_real = e.current_real;
-		odomeevent.last_real = parent->odomtimerlistener->lastevent.last_real;
-		parent->odomtimerlistener->timerCallback(odomeevent);
-
-		twist.linear.x = as;
-		twist.linear.y = 0;
-		twist.linear.z = 0;
-	
-		twist.angular.x = 0;
-		twist.angular.y = 0;
-		twist.angular.z = ls;
-		
-		if ((count % 3) == 0){
-			twist.angular.z *= -1;
-		}
-
-		parent->pubsine.publish(twist);
-		parent->odomtimerlistener->latesttwist = twist;
-		count++;
-	  	
-	}
 
 	void TurtleSine::OdomTimerListener::timerCallback(const ros::TimerEvent& e)
 	{

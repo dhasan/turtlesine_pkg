@@ -12,6 +12,10 @@
 #include <mutex>              
 #include <condition_variable> 
 
+#include <pluginlib_turtle_move/plugin_base.h>
+#include <pluginlib_turtle_move/twist.h>
+#include <pluginlib_turtle_move/follow.h>
+
 #define		POSE_X		(0)
 #define		POSE_Y		(1)
 #define		POSE_THETA	(2)
@@ -73,53 +77,10 @@ namespace task1_pkg {
 
 			private:
 				//ROS timer
+				ros::Publisher pubsine;
 				ros::Timer timer;
 			
 
-		};
-
-		class TwistTimerListener : public BaseListener{
-		
-			public:
-				TwistTimerListener(TurtleSine *p, double dur, ros::NodeHandle &nh);
-				TwistTimerListener() = delete;
-				 
-				virtual ~TwistTimerListener() = default;
-				TwistTimerListener(const TwistTimerListener&) = delete;
-				TwistTimerListener& operator= (const TwistTimerListener&) = delete; //copy assignment operator
-				TwistTimerListener(TwistTimerListener&&) =delete; //move constructor
-				TwistTimerListener& operator=(TwistTimerListener&&) = delete; //move assignment operator
-
-				virtual void timerCallback(const ros::TimerEvent& e);
-			
-			private:
-				//counter of twist commands, 
-				int count;
-				
-	
-		};
-
-		class FolowListener : public BaseListener{
-		
-			public:
-				FolowListener(TurtleSine *p, double dur, ros::NodeHandle &nh, std::string topicname);
-				FolowListener() = delete;
-				 
-				virtual ~FolowListener() = default;
-				FolowListener(const FolowListener&) = delete;
-				FolowListener& operator= (const FolowListener&) = delete; //copy assignment operator
-				FolowListener(FolowListener&&) =delete; //move constructor
-				FolowListener& operator=(FolowListener&&) = delete; //move assignment operator
-
-				virtual void timerCallback(const ros::TimerEvent& e);
-
-				void poseCallback(const geometry_msgs::PoseStampedConstPtr& msg);
-
-			private:
-				ros::Subscriber folowposesub;
-				std::string follow_frame;
-
-			
 		};
 
 		class OdomTimerListener : public BaseListener{
@@ -170,7 +131,7 @@ namespace task1_pkg {
 		//Turtle spawn service client
 		ros::ServiceClient spawn;
 
-		std::unique_ptr<BaseListener> movelistener;
+		boost::shared_ptr<move_base::BaseListener> movelistener;
 		
 		std::unique_ptr<OdomTimerListener> odomtimerlistener;
 
