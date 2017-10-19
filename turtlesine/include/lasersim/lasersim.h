@@ -36,6 +36,8 @@
 				std::string topic;
 				ros::NodeHandle &nh;
 				ros::Subscriber turtlessub;
+				//turtle pose publisher
+				ros::Publisher posepub;
 
 		};
 
@@ -76,9 +78,6 @@
 
 		//LaserScan publisher
 		ros::Publisher laserscan;
-
-		//turtle pose publisher
-		ros::Publisher posepub;
 
 		//Laser scan
 		sensor_msgs::LaserScan ls;

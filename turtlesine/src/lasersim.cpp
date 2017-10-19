@@ -17,7 +17,8 @@
 	const std::string Lasersim::node_name = "lasersim";
 
     Lasersim::TurtleListener::TurtleListener(Lasersim *p, std::string top, ros::NodeHandle &n) : parent(p), topic(top), nh(n),
-        turtlessub(nh.subscribe(top, 10, &TurtleListener::poseCallback, this)){}
+        turtlessub(nh.subscribe(top, 10, &TurtleListener::poseCallback, this)),
+        posepub(nh.advertise<geometry_msgs::PoseStamped>("/demo/turtletarget", 1000)){} //TODO: use relative path
 
     void Lasersim::TurtleListener::poseCallback(const geometry_msgs::PoseStampedConstPtr &msg){
     static tf::TransformBroadcaster br;
@@ -71,7 +72,7 @@
             parent->resetlaser();          
         }
         if (inrange){
-            parent->posepub.publish(*msg);
+            posepub.publish(*msg);
         }
 
 
@@ -82,7 +83,6 @@
     Lasersim::Lasersim(ros::NodeHandle &n): nh(n), 
         turtlelisteners{ TurtleListener(this,"stampedpose1", n), TurtleListener(this,"stampedpose2", n), TurtleListener(this,"stampedpose3", n), TurtleListener(this,"stampedpose4", n)}, //up to 4 turtles
         laserscan(nh.advertise<sensor_msgs::LaserScan>("laserscan", 1000)),
-        posepub(nh.advertise<geometry_msgs::PoseStamped>("/demo/turtletarget", 1000)), //TODO: use relative path
 		wallssub(nh.subscribe("walls", 10, &Lasersim::wallsCallback, this)){
 
         auto ns = nh.getNamespace();
