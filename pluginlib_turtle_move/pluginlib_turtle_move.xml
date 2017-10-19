@@ -1,0 +1,8 @@
+<library path="lib/libpluginlib_turtle_move">
+  <class type="move_plugins::FolowListener" base_class_type="move_base::BaseListener">
+    <description>This is a follow plugin.</description>
+  </class>
+  <class type="move_plugins::TwistTimerListener" base_class_type="move_base::BaseListener">
+    <description>This is a run plugin.</description>
+  </class>
+</library>
