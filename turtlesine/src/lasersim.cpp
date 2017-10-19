@@ -28,8 +28,8 @@
 
         std::vector<std::string> v;
         boost::split(v, msg->header.frame_id, [](char c){return c == '_';});
-        int recivedturtleid = boost::lexical_cast<int>(v.at(0).back());
-        int turtleid = boost::lexical_cast<int>(parent->turtlename.back());
+        auto recivedturtleid = boost::lexical_cast<int>(v.at(0).back());
+        auto turtleid = boost::lexical_cast<int>(parent->turtlename.back());
 
         try{
              parent->tflistener.waitForTransform( v.at(0)+std::string("_base_link"), parent->turtlename + std::string("_")+parent->lasername, time_now, ros::Duration(0.01));
@@ -48,7 +48,7 @@
         
         if ((range < parent->ls.range_max) && (alpha>parent->ls.angle_min) && (alpha<parent->ls.angle_max)){
             inrange = true;
-            int index = static_cast<unsigned int>((alpha - parent->ls.angle_min) * (1.0/parent->ls.angle_increment)) % parent->measurments;
+            auto index = static_cast<unsigned int>((alpha - parent->ls.angle_min) * (1.0/parent->ls.angle_increment)) % parent->measurments;
 
             if (range < parent->ls.ranges[index]) {
                 parent->ls.ranges[index] = range;
@@ -59,7 +59,7 @@
      
 
         //TODO: move this to member area
-        int mask = ((1 << (parent->turtles_cnt + 1)) -1) & ~(1 << (turtleid));
+        auto mask = ((1 << (parent->turtles_cnt + 1)) -1) & ~(1 << (turtleid));
 
         parent->flags |= (1 << recivedturtleid);
    
@@ -99,7 +99,7 @@
 
         nh.getParam("turtles_cnt", turtles_cnt);
 
-        int turtleid = boost::lexical_cast<int>(turtlename.back());
+        auto turtleid = boost::lexical_cast<int>(turtlename.back());
         ROS_ERROR("turtleid : %d", turtleid);
 
         for(int i = 0; i<turtles_cnt; ++i){
@@ -145,7 +145,7 @@
 
     void Lasersim::toPolarPC(const sensor_msgs::PointCloud &in, std::vector<double> &alpha, std::vector<double> &r) const {
 
-        for (int i=0;i<in.points.size();i++){
+        for (auto i=0;i<in.points.size();i++){
             r[i] = (sqrt((in.points[i].x * in.points[i].x)  + (in.points[i].y * in.points[i].y)));
             alpha[i] = (atan2(in.points[i].y, in.points[i].x));
         }
@@ -163,7 +163,7 @@
         ls.ranges.resize(measurments);
         ls.intensities.resize(measurments);
         
-        for(int i=0;i<measurments;i++)
+        for(auto i=0;i<measurments;i++)
             ls.ranges[i] = ls.range_max;
 
         flags = 0;
@@ -196,7 +196,7 @@
 
         parent->toPolarPC(turtlepc, alphas, ranges);
 
-        for(int i=0;i<parent->measurments;i++){
+        for(auto i=0;i<parent->measurments;i++){
 
             if (ranges[i] > parent->ls.range_max)
                 continue;
@@ -204,7 +204,7 @@
             if ((alphas[i]> parent->ls.angle_max) ||  (alphas[i]< parent->ls.angle_min))
                 continue;
 
-            int index = static_cast<unsigned int>((alphas[i] - parent->ls.angle_min) * (1/parent->ls.angle_increment)) % parent->measurments;
+            auto index = static_cast<unsigned int>((alphas[i] - parent->ls.angle_min) * (1/parent->ls.angle_increment)) % parent->measurments;
 
             if (ranges[i] < parent->ls.ranges[index]) {
                 parent->ls.ranges[index] = ranges[i];
@@ -213,9 +213,9 @@
         }
 
         parent->flags |= 1;
-        int turtleid = boost::lexical_cast<int>(parent->turtlename.back());
+        auto  turtleid = boost::lexical_cast<int>(parent->turtlename.back());
 
-        int mask = ((1 << (parent->turtles_cnt + 1)) -1) & ~(1 << (turtleid));
+        auto mask = ((1 << (parent->turtles_cnt + 1)) -1) & ~(1 << (turtleid));
 
         if (parent->flags == mask){
             

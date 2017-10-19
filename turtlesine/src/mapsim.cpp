@@ -38,7 +38,7 @@
 		parent->pc.header.frame_id = "map";
 		
 		
-		for (int i = 0; i<100; i++){
+		for (auto i = 0; i<100; i++){
 			point.x = i * 11.08/100;
 			point.y = 0;
 			point.z = 0;
