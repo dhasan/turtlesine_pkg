@@ -128,15 +128,22 @@ namespace task1_pkg {
 
 		if (follow_frame.size()>0){
 			movelistener = move_loader.createInstance("move_plugins::FolowListener");
-			dynamic_cast<move_plugins::FolowListener*>(movelistener.get())->initialize(TIME_DT_FOLOW, nh);
-			dynamic_cast<move_plugins::FolowListener*>(movelistener.get())->setnames(follow_frame, turtlename);
+			move_plugins::FolowListener *fl = dynamic_cast<move_plugins::FolowListener*>(movelistener.get());
+			if (fl!=nullptr){
+				fl->initialize(TIME_DT_FOLOW, nh);
+				fl->setnames(follow_frame, turtlename);
+			}else
+				ROS_ERROR("Unable to cast FolowListener");
 		}else{
 			movelistener = move_loader.createInstance("move_plugins::TwistTimerListener");
-			dynamic_cast<move_plugins::TwistTimerListener*>(movelistener.get())->initialize(TIME_DT_FOLOW, nh);
+			move_plugins::TwistTimerListener *tl = dynamic_cast<move_plugins::TwistTimerListener*>(movelistener.get());
+			if (tl!=nullptr)
+				tl->initialize(TIME_DT_FOLOW, nh);
+			else
+				ROS_ERROR("Unable to cast TwistTimerListener");
 		}
-		//TODO: move start method to follow initializer
-		movelistener->start();
 
+		movelistener->start();
 
 		odomtimerlistener->odominittransform();
 
