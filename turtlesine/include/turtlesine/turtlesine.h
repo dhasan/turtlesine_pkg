@@ -26,7 +26,7 @@
 
 #undef 		SIMULATE_GPS
 
-namespace task1_pkg {
+
 	class TurtleSine : public nodelet::Nodelet
 	{
 
@@ -34,6 +34,7 @@ namespace task1_pkg {
 	public:
 		
 		static const std::string node_name;
+		static void sigHandler (int signum);
 
 		virtual void onInit();
 
@@ -68,11 +69,11 @@ namespace task1_pkg {
 
 				ros::TimerEvent lastevent; //TODO use setter getter
 			protected:
-				BaseListener(TurtleSine *p, double dur, ros::NodeHandle &n);
+				BaseListener(TurtleSine &p, double dur, ros::NodeHandle &n);
 				ros::NodeHandle &nh;	
 
 				double duration;
-				TurtleSine *parent;
+				TurtleSine &parent;
 				
 
 			private:
@@ -86,7 +87,7 @@ namespace task1_pkg {
 		class OdomTimerListener : public BaseListener{
 		
 			public:
-				OdomTimerListener(TurtleSine *p, double dur, ros::NodeHandle &nh);
+				OdomTimerListener(TurtleSine &p, double dur, ros::NodeHandle &nh);
 				OdomTimerListener() = delete;
 				 
 				virtual ~OdomTimerListener() = default;
@@ -113,6 +114,8 @@ namespace task1_pkg {
 
 		//Conditional variable callback 
 		static void simWait(TurtleSine *obj);
+		
+   
 
 		void toPolarP(const geometry_msgs::Point &in, double &alpha, double &r) const;
 
@@ -156,6 +159,6 @@ namespace task1_pkg {
 	};
 
 
-}
+
 
 #endif

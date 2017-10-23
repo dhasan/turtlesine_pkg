@@ -10,9 +10,7 @@
 
 #include <geometry_msgs/Point32.h>
 
-/*PLUGINLIB_EXPORT_CLASS(task1_pkg::Lasersim, nodelet::Nodelet)
 
-/* namespace task1_pkg {*/
 
 	const std::string Lasersim::node_name = "lasersim";
 
@@ -210,24 +208,15 @@
     }
 
 
-/* } */
+
 
 
 int main(int argc, char **argv)
 {
-	ros::init(argc, argv, /* task1_pkg::*/Lasersim::node_name);
-#if 1
+	ros::init(argc, argv, Lasersim::node_name);
 	
 	ros::NodeHandle n("~");
-	/*task1_pkg::*/Lasersim ts(n);
-
-#else
-	nodelet::Loader nodelet;
-  	nodelet::M_string remap(ros::names::getRemappings());
-  	nodelet::V_string nargv;
-  	std::string nodelet_name = ros::this_node::getName();
-  	nodelet.load(nodelet_name, "task1_pkg/Lasersim", remap, nargv);
-#endif
+	Lasersim ts(n);
 
 	ros::spin();
 
