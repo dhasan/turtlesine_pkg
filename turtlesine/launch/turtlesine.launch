@@ -37,6 +37,7 @@
             <param name="range_min" value="0.05" type="double" />
             <param name="range_max" value="3.0" type="double" />
             <param name="turtles_cnt" value="2" type="int" />
+            <param name="turtletarget" value="$(arg ns)/turtletarget" type="str" />
 
             <remap from="~walls" to="$(arg ns)/sim/mapsim/walls" />
             <remap from="~stampedpose2" to="$(arg ns)/turtle2/stampedpose" />
@@ -50,6 +51,7 @@
             <param name="range_min" value="0.05" type="double" />
             <param name="range_max" value="3.0" type="double" />
             <param name="turtles_cnt" value="2" type="int" />
+            <param name="turtletarget" value="$(arg ns)/turtletarget" type="str" />
 
             <remap from="~walls" to="$(arg ns)/sim/mapsim/walls" />
             <remap from="~stampedpose2" to="$(arg ns)/turtle2/stampedpose" />
@@ -63,6 +65,7 @@
             <param name="range_min" value="0.05" type="double" />
             <param name="range_max" value="3.0" type="double" />
             <param name="turtles_cnt" value="2" type="int" />
+            <param name="turtletarget" value="$(arg ns)/turtletarget" type="str" />
 
             <remap from="~walls" to="$(arg ns)/sim/mapsim/walls" />
             <remap from="~stampedpose2" to="$(arg ns)/turtle2/stampedpose" />
@@ -76,6 +79,7 @@
             <param name="range_min" value="0.05" type="double" />
             <param name="range_max" value="3.0" type="double" />
             <param name="turtles_cnt" value="2" type="int" />
+            <param name="turtletarget" value="$(arg ns)/turtletarget" type="str" />
 
             <remap from="~walls" to="$(arg ns)/sim/mapsim/walls" />
             <remap from="~stampedpose2" to="$(arg ns)/turtle2/stampedpose" />
@@ -95,7 +99,8 @@
         <node pkg="turtlesine" name="$(arg turtlename)" type="turtlesine">
 
             <param name="follow_frame" value="turtle1_base_link" type="str" />
-           
+            <param name="turtletarget" value="$(arg ns)/turtletarget" type="str" />
+            
             <param name="a_speed" value="1.44" type="double" />
             <param name="l_speed" value="1.44" type="double" />
             

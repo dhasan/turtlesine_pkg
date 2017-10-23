@@ -16,7 +16,9 @@ namespace move_plugins {
 	void FolowListener::initialize(double dur, ros::NodeHandle &n){
 		nh = n;
 		this->duration = dur;
-		folowposesub = nh.subscribe("/demo/turtletarget", 10, &FolowListener::poseCallback, this);
+		std::string turtletarget;
+		nh.param<std::string>("turtletarget", turtletarget, "/demo/turtletarget");
+		folowposesub = nh.subscribe(turtletarget, 10, &FolowListener::poseCallback, this); // TODO use topic name from param
 	}
 
 	void FolowListener::setnames(std::string topicname, std::string tn){
@@ -59,7 +61,7 @@ namespace move_plugins {
 		twist.angular.z = angle;
 		
 		pubsine.publish(twist);
-		//parent->odomtimerlistener->latesttwist = twist;
+		
 
 	}
 	
