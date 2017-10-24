@@ -14,7 +14,7 @@ Mapsim::Mapsim(ros::NodeHandle &n): nh(n),
 	pcpub(nh.advertise<sensor_msgs::PointCloud>("walls", 1000)){
 }
 
-void Mapsim::MapTimerListener::timerCallback(const ros::TimerEvent& e)
+void Mapsim::MapTimerListener::timerCallback(const ros::TimerEvent& e) const
 {
 	geometry_msgs::Point32 point;
 	parent.pc.header.frame_id = "map";

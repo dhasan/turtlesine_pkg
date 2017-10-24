@@ -35,7 +35,7 @@ public:
 	static void sigHandler (int signum);
 	void poseCallback(const turtlesim::PoseConstPtr& msg);
 	TurtleSine(ros::NodeHandle &n);
-	//Nodelet is using this constructor, so keeping it non-default.....
+
 	TurtleSine() = delete;
 	virtual ~TurtleSine();
 	TurtleSine(const TurtleSine&) = delete;
@@ -83,7 +83,7 @@ private:
 			OdomTimerListener& operator=(OdomTimerListener&&) = delete; //move assignment operator
 			virtual void timerCallback(const ros::TimerEvent& e);
 			void setLastPose(double x, double y, double theta){lastpose.at(0) = x, lastpose.at(1) = y, lastpose.at(2) = theta;}
-			void odominittransform();
+			void odominittransform() const;
 			int getCount() const {return count;}
 			
 			geometry_msgs::Twist latesttwist; //TODO: setter gettor
@@ -122,9 +122,11 @@ private:
 
 	//Name of the turtle
 	std::string turtlename;
+
 	std::mutex mtx;
 	std::condition_variable cv;
 	std::thread thread;
+
 	tf::TransformListener tflistener;
 };
 

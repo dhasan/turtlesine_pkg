@@ -170,7 +170,7 @@ target_link_libraries(move_plugins ${catkin_LIBRARIES})
 ## Mark executable scripts (Python etc.) for installation
 ## in contrast to setup.py, you can choose the destination
 # install(PROGRAMS
-#   scripts/my_python_script
+#   pluginlib_turtle_move.xml
 #   DESTINATION ${CATKIN_PACKAGE_BIN_DESTINATION}
 # )
 
@@ -189,11 +189,11 @@ install(TARGETS ${PROJECT_NAME} ${PROJECT_NAME}
 # )
 
 ## Mark other files for installation (e.g. launch and bag files, etc.)
-# install(FILES
-#   # myfile1
-#   # myfile2
-#   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
-# )
+ install(FILES
+   # myfile1
+   pluginlib_turtle_move.xml
+   DESTINATION ${CATKIN_PACKAGE_SHARE_DESTINATION}
+ )
 
 
 #############

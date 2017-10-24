@@ -51,7 +51,7 @@ TurtleSine::BaseListener::BaseListener(TurtleSine &p, double dur, ros::NodeHandl
 	{}
 TurtleSine::OdomTimerListener::OdomTimerListener(TurtleSine &p, double dur, ros::NodeHandle &nh) : BaseListener(p, dur, nh), lastpose(3, .0){
 }
-void TurtleSine::OdomTimerListener::odominittransform(){
+void TurtleSine::OdomTimerListener::odominittransform() const {
 	static tf::TransformBroadcaster br;
 	br.sendTransform(tf::StampedTransform(tf::Transform(tf::Quaternion(.0, .0, .0, 1.0), tf::Vector3(0.0, 0.0, 0.0)), ros::Time::now(), parent.turtlename+std::string("_odom"), parent.turtlename+std::string("_base_link")));
 }
