@@ -1,7 +1,6 @@
-#include "mapsim.h"
-#include "nodelet/loader.h"
 
 #include <geometry_msgs/Point32.h>
+#include "mapsim.h"
 
 const std::string Mapsim::node_name = "mapsim";
 Mapsim::MapTimerListener::MapTimerListener(Mapsim &p, double dur, ros::NodeHandle &nh) : TimerBaseListener(p, dur, nh){}
@@ -11,8 +10,7 @@ Mapsim::TimerBaseListener::TimerBaseListener(Mapsim &p, double dur, ros::NodeHan
 	timer(nh.createTimer(ros::Duration(dur), &TimerBaseListener::timerCallback, this)){}
 Mapsim::Mapsim(ros::NodeHandle &n): nh(n), 
 	timerlistener(new MapTimerListener(*this, TIME_DT, nh)), 
-	pcpub(nh.advertise<sensor_msgs::PointCloud>("walls", 1000)){
-}
+	pcpub(nh.advertise<sensor_msgs::PointCloud>("walls", 1000)){}
 
 void Mapsim::MapTimerListener::timerCallback(const ros::TimerEvent& e) const
 {

@@ -1,29 +1,29 @@
 #include <pluginlib/class_list_macros.h>
 #include <pluginlib_turtle_move/plugin_base.h>
-//#include <pluginlib_turtle_move/twist.h>
+
 #include <pluginlib_turtle_move/follow.h>
 
 PLUGINLIB_EXPORT_CLASS(move_plugins::FolowListener, move_base::BaseListener)
 
 namespace move_plugins {
-    void FolowListener::toPolarP(const geometry_msgs::Point &in, double &alpha, double &r) const {
-        r= sqrt((in.x * in.x)  + (in.y * in.y));
-        alpha = atan2(in.y, in.x);
+    void FolowListener::toPolarP(const geometry_msgs::Point &in, geometry_msgs::Pose2D &out) const { 
+        out.x = sqrt((in.x * in.x)  + (in.y * in.y));
+        out.theta = atan2(in.y, in.x);
     }
 
-
     FolowListener::FolowListener(): BaseListener() {}
+
 	void FolowListener::initialize(double dur, ros::NodeHandle &n){
 		nh = n;
-		this->duration = dur;
+		duration = dur;
 		std::string turtletarget;
 		nh.param<std::string>("turtletarget", turtletarget, "/demo/turtletarget");
-		folowposesub = nh.subscribe(turtletarget, 10, &FolowListener::poseCallback, this); // TODO use topic name from param
+		folowposesub = nh.subscribe(turtletarget, 10, &FolowListener::poseCallback, this); 
 	}
 
 	void FolowListener::setnames(std::string topicname, std::string tn){
-		this->turtlename = tn;
-		this->follow_frame = topicname;
+		turtlename = tn;
+		follow_frame = topicname;
 	}
 
 	void FolowListener::poseCallback(const geometry_msgs::PoseStampedConstPtr& msg){
@@ -31,6 +31,7 @@ namespace move_plugins {
 		geometry_msgs::PoseStamped transformedpose;
 		double angle, range;
 		geometry_msgs::Twist twist;
+		geometry_msgs::Pose2D outpoint;
 
 		auto time_now = ros::Time::now();
 
@@ -41,28 +42,28 @@ namespace move_plugins {
 		try{
              tflistener.waitForTransform(turtlename+std::string("_base_link"), msg->header.frame_id, time_now, ros::Duration(0.01));
         }catch(tf::TransformException& ex){
-            ROS_ERROR("Wait an exception trying to transform a point from \"%s\" to \"%s\": %s",  "map", std::string(turtlename+std::string("_base_link")).c_str(), ex.what());
+            ROS_WARN("Wait an exception trying to transform a point from \"%s\" to \"%s\": %s",  
+            	"map", std::string(turtlename+std::string("_base_link")).c_str(), ex.what());
         }
 
         try{
             tflistener.transformPose(turtlename+std::string("_base_link"), *msg, transformedpose);
         }catch(tf::TransformException& ex){
-            ROS_ERROR("Received an exception trying to transform a point from \"%s\" to \"%s\": %s", msg->header.frame_id.c_str(), std::string(turtlename+std::string("_base_link")).c_str(), ex.what());
+            ROS_WARN("Received an exception trying to transform a point from \"%s\" to \"%s\": %s", 
+            	msg->header.frame_id.c_str(), std::string(turtlename+std::string("_base_link")).c_str(), ex.what());
         }
 
-        toPolarP(transformedpose.pose.position, angle, range);
+        toPolarP(transformedpose.pose.position, outpoint);
 
-        twist.linear.x = range;
-		twist.linear.y = 0;
-		twist.linear.z = 0;
+        twist.linear.x = outpoint.x;
+		twist.linear.y = 0.;
+		twist.linear.z = 0.;
 	
-		twist.angular.x = 0;
-		twist.angular.y = 0;
-		twist.angular.z = angle;
+		twist.angular.x = 0.;
+		twist.angular.y = 0.;
+		twist.angular.z = outpoint.theta;
 		
 		pubsine.publish(twist);
-		
-
 	}
 	
 	void FolowListener::timerCallback(const ros::TimerEvent& e)

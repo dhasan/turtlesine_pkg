@@ -2,11 +2,15 @@
 #define _MAPSIM_H_
 
 #include "ros/ros.h"
-#include <sensor_msgs/LaserScan.h>
-
-#include <nodelet/nodelet.h>
-#include <tf/transform_listener.h>
 #include <cmath>
+
+#include <geometry_msgs/PoseStamped.h>
+#include <geometry_msgs/Pose2D.h>
+#include <sensor_msgs/LaserScan.h>
+#include <sensor_msgs/PointCloud.h>
+
+#include <tf/transform_listener.h>
+
 
 class Lasersim
 {
@@ -31,11 +35,13 @@ public:
             //turtle pose publisher
             ros::Publisher posepub;
     };
+
     static const std::string node_name;
+
     void wallsCallback(const sensor_msgs::PointCloudConstPtr &msg);
     //Transformation from cadestrian coordinates to polar
-    void toPolarPC(const sensor_msgs::PointCloud &in, std::vector<double> &alpha, std::vector<double> &r) const;
-    void toPolarP(const geometry_msgs::Point &in, double &alpha, double &r) const;
+    void toPolarPC(const sensor_msgs::PointCloud &in, geometry_msgs::Pose2D *out) const;
+    void toPolarP(const geometry_msgs::Point &in, geometry_msgs::Pose2D &out) const;
     
     Lasersim(ros::NodeHandle &n);
     //Nodelet is using this constructor, so keeping it non-default.....
@@ -48,6 +54,7 @@ public:
 private:
 
     void resetlaser();
+
     ros::NodeHandle& nh;
     //Name of the turtle
     std::string turtlename;
@@ -55,11 +62,12 @@ private:
     //Walls subscriber
     ros::Subscriber wallssub;
     tf::TransformListener tflistener;
+
     //LaserScan publisher
     ros::Publisher laserscan;
     //Laser scan
     sensor_msgs::LaserScan ls;
-    std::array<TurtleListener,4> turtlelisteners;
+    std::array<TurtleListener, 4> turtlelisteners;
     //laser message measurements 
     int measurments;
     unsigned int flags;

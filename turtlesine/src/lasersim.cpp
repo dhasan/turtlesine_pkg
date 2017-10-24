@@ -1,21 +1,10 @@
-#include "lasersim.h"
-#include "nodelet/loader.h"
-#include <string>
 #include <boost/algorithm/string.hpp>
-#include <sensor_msgs/LaserScan.h>
-#include <tf/tf.h>
-#include <tf/transform_datatypes.h>
-#include <tf/transform_broadcaster.h>
 #include <stdlib.h>
-
-#include <geometry_msgs/Point32.h>
-
-
+#include "lasersim.h"
 
 const std::string Lasersim::node_name = "lasersim";
 Lasersim::TurtleListener::TurtleListener(Lasersim &p, std::string top, ros::NodeHandle &n) : parent(p), topic(top), nh(n),
     turtlessub(nh.subscribe(top, 10, &TurtleListener::poseCallback, this))
-
     {
         std::string turtletarget;
         nh.param<std::string>("turtletarget", turtletarget, "/demo/turtletarget");
@@ -24,9 +13,8 @@ Lasersim::TurtleListener::TurtleListener(Lasersim &p, std::string top, ros::Node
 
 void Lasersim::TurtleListener::poseCallback(const geometry_msgs::PoseStampedConstPtr &msg)
 {
-    static tf::TransformBroadcaster br;
-      
     bool inrange;
+    geometry_msgs::Pose2D outpoint;
     geometry_msgs::PoseStamped transformedpose,mappose;
     ros::Time time_now = ros::Time::now();
     std::vector<std::string> v;
@@ -36,23 +24,23 @@ void Lasersim::TurtleListener::poseCallback(const geometry_msgs::PoseStampedCons
     try{
         parent.tflistener.waitForTransform( v.at(0)+std::string("_base_link"), parent.turtlename + std::string("_")+parent.lasername, time_now, ros::Duration(0.01));
     }catch(tf::TransformException& ex){
-        ROS_ERROR("Wait an exception trying to transform a point from \"%s\" to \"%s\": %s",  std::string(v.at(0)+std::string("_base_link")).c_str(), std::string(parent.turtlename + std::string("_")+parent.lasername).c_str(), ex.what());
+        ROS_WARN("Wait an exception trying to transform a point from \"%s\" to \"%s\": %s",  std::string(v.at(0)+std::string("_base_link")).c_str(), std::string(parent.turtlename + std::string("_")+parent.lasername).c_str(), ex.what());
     }
 
     try{
        parent.tflistener.transformPose(parent.turtlename +  std::string("_")+parent.lasername, *msg, transformedpose);
     }catch(tf::TransformException& ex){
-        ROS_ERROR("Received an exception trying to transform a point from \"%s\" to \"%s\": %s", msg->header.frame_id.c_str(), std::string(parent.turtlename +std::string("_")+parent.lasername).c_str(), ex.what());
+        ROS_WARN("Received an exception trying to transform a point from \"%s\" to \"%s\": %s", msg->header.frame_id.c_str(), std::string(parent.turtlename +std::string("_")+parent.lasername).c_str(), ex.what());
     }
-    double alpha, range;
-    parent.toPolarP(transformedpose.pose.position, alpha, range);
+
+    parent.toPolarP(transformedpose.pose.position, outpoint);
        
-    if ((range < parent.ls.range_max) && (alpha>parent.ls.angle_min) && (alpha<parent.ls.angle_max)){
+    if ((outpoint.x < parent.ls.range_max) && (outpoint.theta > parent.ls.angle_min) && (outpoint.theta < parent.ls.angle_max)){
         inrange = true;
-        auto index = static_cast<unsigned int>((alpha - parent.ls.angle_min) * (1.0/parent.ls.angle_increment)) % parent.measurments;
-        if (range < parent.ls.ranges[index]) {
-            parent.ls.ranges[index] = range;
-            parent.ls.intensities[index] = range;
+        auto index = static_cast<unsigned int>((outpoint.theta - parent.ls.angle_min) * (1.0/parent.ls.angle_increment)) % parent.measurments;
+        if (outpoint.x < parent.ls.ranges[index]) {
+            parent.ls.ranges[index] = outpoint.x;
+            parent.ls.intensities[index] = outpoint.x;
         }
     }else
         inrange = false;
@@ -70,7 +58,7 @@ void Lasersim::TurtleListener::poseCallback(const geometry_msgs::PoseStampedCons
     }
 }
 Lasersim::Lasersim(ros::NodeHandle &n): nh(n), 
-    turtlelisteners{ TurtleListener(*this,"stampedpose1", n), TurtleListener(*this,"stampedpose2", n), TurtleListener(*this,"stampedpose3", n), TurtleListener(*this,"stampedpose4", n)}, //up to 4 turtles
+    turtlelisteners{TurtleListener(*this,"stampedpose1", n), TurtleListener(*this,"stampedpose2", n), TurtleListener(*this,"stampedpose3", n), TurtleListener(*this,"stampedpose4", n)}, //up to 4 turtles
     laserscan(nh.advertise<sensor_msgs::LaserScan>("laserscan", 1000)),
     wallssub(nh.subscribe("walls", 10, &Lasersim::wallsCallback, this))
 {
@@ -84,7 +72,7 @@ Lasersim::Lasersim(ros::NodeHandle &n): nh(n),
     flags = 0;
     nh.getParam("turtles_cnt", turtles_cnt);
     auto turtleid = boost::lexical_cast<int>(turtlename.back());
-    ROS_ERROR("turtleid : %d", turtleid);
+
     double amin, amax, rmin, rmax;
     nh.getParam("measurments", measurments);
   
@@ -101,17 +89,20 @@ Lasersim::Lasersim(ros::NodeHandle &n): nh(n),
    
     resetlaser();
 }
-void Lasersim::toPolarPC(const sensor_msgs::PointCloud &in, std::vector<double> &alpha, std::vector<double> &r) const 
+void Lasersim::toPolarPC(const sensor_msgs::PointCloud &in, geometry_msgs::Pose2D *out) const
 {
-    for (auto i=0;i<in.points.size();i++){
-        r[i] = (sqrt((in.points[i].x * in.points[i].x)  + (in.points[i].y * in.points[i].y)));
-        alpha[i] = (atan2(in.points[i].y, in.points[i].x));
+    for (auto i=0;i<in.points.size();++i)
+    {
+        out[i].x = sqrt((in.points[i].x * in.points[i].x)  + (in.points[i].y * in.points[i].y));
+        out[i].y = 0.;
+        out[i].theta = atan2(in.points[i].y, in.points[i].x);
     }
 }
-void Lasersim::toPolarP(const geometry_msgs::Point &in, double &alpha, double &r) const 
+void Lasersim::toPolarP(const geometry_msgs::Point &in, geometry_msgs::Pose2D &out) const 
 {
-    r= (sqrt((in.x * in.x)  + (in.y * in.y)));
-    alpha = (atan2(in.y, in.x));
+    out.x = (sqrt((in.x * in.x)  + (in.y * in.y)));
+    out.y = 0.;
+    out.theta = (atan2(in.y, in.x));
 }
 
 void Lasersim::resetlaser()
@@ -119,43 +110,45 @@ void Lasersim::resetlaser()
     ls.ranges.resize(measurments);
     ls.intensities.resize(measurments);
        
-    for(auto i=0;i<measurments;i++)
+    for(auto i=0;i<measurments;++i)
+    {
        ls.ranges[i] = ls.range_max;
+    }
     flags = 0;
 }
 void Lasersim::wallsCallback(const sensor_msgs::PointCloudConstPtr &msg)
 {
-    static tf::TransformBroadcaster br;
     sensor_msgs::PointCloud turtlepc;
        
     if (flags & 1)
         return;
 
-    std::vector<double> alphas(measurments, 0);
-    std::vector<double> ranges(measurments, 0);
-   
+    //Dynamic array for output polar coordinates
+    std::unique_ptr<geometry_msgs::Pose2D[]> outpoints(new geometry_msgs::Pose2D[measurments]);
+
     ros::Time time_now = ros::Time::now();
     try{
         tflistener.waitForTransform("map", turtlename + std::string("_")+lasername, time_now, ros::Duration(0.01));
     }catch(tf::TransformException& ex){
-        ROS_ERROR("Wait an exception trying to transform a point from \"%s\" to \"%s\": %s", "map", std::string(turtlename + std::string("_")+lasername).c_str(), ex.what());
+        ROS_WARN("Wait an exception trying to transform a point from \"%s\" to \"%s\": %s", 
+            "map", std::string(turtlename + std::string("_")+lasername).c_str(), ex.what());
     }
     try{
        tflistener.transformPointCloud(turtlename + std::string("_")+lasername, *msg, turtlepc);
     }catch(tf::TransformException& ex){
-       ROS_ERROR("Received an exception trying to transform a point from \"%s\" to \"%s\": %s", msg->header.frame_id.c_str(), std::string(turtlename + std::string("_")+lasername).c_str(), ex.what());
+       ROS_WARN("Received an exception trying to transform a point from \"%s\" to \"%s\": %s", msg->header.frame_id.c_str(), std::string(turtlename + std::string("_")+lasername).c_str(), ex.what());
     }
 
-    toPolarPC(turtlepc, alphas, ranges);
+    toPolarPC(turtlepc, outpoints.get());
     for(auto i=0;i<measurments;i++){
-        if (ranges[i] > ls.range_max)
+        if (outpoints[i].x > ls.range_max)
             continue;
-        if ((alphas[i]> ls.angle_max) ||  (alphas[i]< ls.angle_min))
+        if ((outpoints[i].theta > ls.angle_max) ||  (outpoints[i].theta < ls.angle_min))
             continue;
-        auto index = static_cast<unsigned int>((alphas[i] - ls.angle_min) * (1/ls.angle_increment)) % measurments;
-        if (ranges[i] < ls.ranges[index]) {
-            ls.ranges[index] = ranges[i];
-            ls.intensities[index] = ranges[i];
+        auto index = static_cast<unsigned int>((outpoints[i].theta - ls.angle_min) * (1/ls.angle_increment)) % measurments;
+        if (outpoints[i].x < ls.ranges[index]) {
+            ls.ranges[index] = outpoints[i].x;
+            ls.intensities[index] = outpoints[i].x;
         }
     }
     
@@ -167,6 +160,7 @@ void Lasersim::wallsCallback(const sensor_msgs::PointCloudConstPtr &msg)
         laserscan.publish(ls);
         resetlaser();
     }
+   
 }
 
 int main(int argc, char **argv)
