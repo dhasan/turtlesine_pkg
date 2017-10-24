@@ -72,7 +72,7 @@ Lasersim::Lasersim(ros::NodeHandle &n): nh(n),
     flags = 0;
     nh.getParam("turtles_cnt", turtles_cnt);
     auto turtleid = boost::lexical_cast<int>(turtlename.back());
-
+    
     double amin, amax, rmin, rmax;
     nh.getParam("measurments", measurments);
   
