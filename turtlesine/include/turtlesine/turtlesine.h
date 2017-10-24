@@ -24,9 +24,6 @@
 #define 	TIME_DT_ODOM 	(0.01)
 #define 	TIME_DT_FOLOW	(0.1)
 
-#undef 		SIMULATE_GPS
-
-
 class TurtleSine 
 {
 public:
