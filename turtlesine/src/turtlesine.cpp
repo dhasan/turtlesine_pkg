@@ -216,16 +216,16 @@ void TurtleSine::OdomTimerListener::timerCallback(const ros::TimerEvent& e)
 
     odom.pose.pose.position.x = lastpose.x;
     odom.pose.pose.position.y = lastpose.y;
-    odom.pose.pose.position.z = 0;
-    
+    odom.pose.pose.position.z = .0;
+
     odom.pose.pose.orientation.x = q[0];
     odom.pose.pose.orientation.y = q[1];
     odom.pose.pose.orientation.z = q[2];
     odom.pose.pose.orientation.w = q[3];
     
     odom.twist.twist = lasttwist;
-
     parent.odompub.publish(odom);
+
     ps.header.stamp = time_now;
     ps.header.frame_id = parent.turtlename + std::string("_base_link");
     ps.pose.orientation = odom.pose.pose.orientation;
