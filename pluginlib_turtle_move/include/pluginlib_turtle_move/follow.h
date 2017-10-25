@@ -31,6 +31,7 @@ namespace move_plugins {
             std::string follow_frame;
             tf::TransformListener tflistener;
             std::string turtlename;
+            double dt;
     };
 };
 #endif

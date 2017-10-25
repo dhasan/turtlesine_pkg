@@ -131,7 +131,7 @@ TurtleSine::TurtleSine(ros::NodeHandle &n) : nh(n) ,
         auto tl = dynamic_cast<move_plugins::TwistTimerListener*>(movelistener.get());
         if (tl!=nullptr)
         {
-            tl->initialize(TIME_DT_FOLOW, nh);
+            tl->initialize(TIME_DT_TWIST, nh);
         }
         else
         {

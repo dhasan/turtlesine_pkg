@@ -12,8 +12,8 @@
         <arg name="turtlename" default="turtle1"/>
         <node pkg="turtlesine" name="$(arg turtlename)_driver" type="turtlesine">
            
-            <param name="a_speed" value="0.44" type="double" />
-            <param name="l_speed" value="0.44" type="double" />
+            <param name="a_speed" value="4.44" type="double" />
+            <param name="l_speed" value="4.44" type="double" />
             
             <param name="initial_x" value="5.5" type="double" />
             <param name="initial_y" value="5.7" type="double" />

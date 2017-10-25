@@ -25,13 +25,13 @@ namespace move_plugins {
 
         ros::TimerEvent odomeevent;
 
-        twist.linear.x = as;
+        twist.linear.x = ls;
         twist.linear.y = 0.;
         twist.linear.z = 0.;
     
         twist.angular.x = 0.;
         twist.angular.y = 0.;
-        twist.angular.z = ls;
+        twist.angular.z = as;
         
         if ((count % 3) == 0){
             twist.angular.z *= -1.0;

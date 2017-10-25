@@ -44,8 +44,6 @@ private:
         
         private:
             ros::Timer timer;
-            
-        
     };
     class MapTimerListener : public TimerBaseListener{
     
@@ -59,11 +57,12 @@ private:
             MapTimerListener(MapTimerListener&&) =delete; //move constructor
             MapTimerListener& operator=(MapTimerListener&&) = delete; //move assignment operator
             virtual void timerCallback(const ros::TimerEvent& e) const;
-        
+        private:
+            //point cloud publishter
+            ros::Publisher pcpub;      
     };
     ros::NodeHandle& nh;
-    //point cloud publishter
-    ros::Publisher pcpub;
+    
     sensor_msgs::PointCloud pc;
 
     std::unique_ptr<TimerBaseListener> timerlistener;
