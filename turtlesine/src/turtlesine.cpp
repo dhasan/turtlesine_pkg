@@ -53,9 +53,9 @@ void TurtleSine::OdomTimerListener::odominittransform() {
         parent.turtlename+std::string("_odom"), 
         parent.turtlename+std::string("_base_link")));
 
-    lastpose.x = 0.;
-    lastpose.y = 0.;
-    lastpose.theta = 0.;
+    lastpose.x = .0;
+    lastpose.y = .0;
+    lastpose.theta = .0;
 }
 
 void TurtleSine::poseCallback(const turtlesim::PoseConstPtr& msg)
@@ -63,7 +63,7 @@ void TurtleSine::poseCallback(const turtlesim::PoseConstPtr& msg)
 
     gpstransform.setOrigin( tf::Vector3(msg->x, msg->y, .0) );
     tf::Quaternion q;
-    q.setRPY(0, 0, msg->theta);
+    q.setRPY(.0, .0, msg->theta);
     gpstransform.setRotation(q);
     ros::Time time_now = ros::Time::now();
     
@@ -98,7 +98,7 @@ TurtleSine::TurtleSine(ros::NodeHandle &n) : nh(n) ,
     turtlesim::TeleportAbsolute telep;
     
     std::string follow_frame;
-    double tx,ty,ttheta;
+    double tx=.0,ty=.0,ttheta=.0;
     nh.getParam("initial_x", tx);
     nh.getParam("initial_y", ty);
     nh.getParam("initial_theta", ttheta);
@@ -187,7 +187,7 @@ void TurtleSine::OdomTimerListener::timerCallback(const ros::TimerEvent& e)
 
     tf::Transform transform_bs;
     tf::StampedTransform maptransform;
-    ros::Time time_now = ros::Time::now();
+    const ros::Time time_now = ros::Time::now();
     auto lasttwist = getLatestTwist();
 
     auto vx = lasttwist.linear.x;
@@ -204,7 +204,7 @@ void TurtleSine::OdomTimerListener::timerCallback(const ros::TimerEvent& e)
     lastpose.y += delta_y;
     lastpose.theta += delta_th;
 
-    double tx,ty,ttheta;
+    double tx=.0,ty=.0,ttheta=.0;
     nh.getParam("initial_x", tx);
     nh.getParam("initial_y", ty);
     nh.getParam("initial_theta", ttheta);

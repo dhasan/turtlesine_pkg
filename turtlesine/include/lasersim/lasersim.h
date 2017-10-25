@@ -44,7 +44,6 @@ public:
     void toPolarP(const geometry_msgs::Point &in, geometry_msgs::Pose2D &out) const;
     
     Lasersim(ros::NodeHandle &n);
-    //Nodelet is using this constructor, so keeping it non-default.....
     Lasersim()=delete;
     virtual ~Lasersim() = default;
      Lasersim(const Lasersim&) = delete;

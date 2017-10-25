@@ -111,8 +111,7 @@ private:
     ros::ServiceClient clienttelep;
     //Turtle spawn service client
     ros::ServiceClient spawn;
-    boost::shared_ptr<move_base::BaseListener> movelistener;
-    
+        
     std::unique_ptr<OdomTimerListener> odomtimerlistener;
     //Turtle odometry publisher
     ros::Publisher odompub;
@@ -130,9 +129,11 @@ private:
 
     tf::TransformListener tflistener;
     tf::TransformBroadcaster br;
-
+    
     //Library loader
     pluginlib::ClassLoader<move_base::BaseListener> move_loader;
+
+    decltype(move_loader.createInstance("")) movelistener;
 };
 
 #endif

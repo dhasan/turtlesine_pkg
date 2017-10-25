@@ -17,7 +17,7 @@ void Lasersim::TurtleListener::poseCallback(const geometry_msgs::PoseStampedCons
     geometry_msgs::Pose2D outpoint;
     geometry_msgs::PoseStamped transformedpose, mappose;
 
-    ros::Time time_now = ros::Time::now();
+    const ros::Time time_now = ros::Time::now();
     
     std::vector<std::string> v;
     boost::split(v, msg->header.frame_id, [](char c){return c == '_';});
@@ -86,10 +86,11 @@ Lasersim::Lasersim(ros::NodeHandle &n): nh(n),
     turtlename = v.at(0);
     lasername = v.at(1);
     flags = 0;
+    turtles_cnt = 0;
     nh.getParam("turtles_cnt", turtles_cnt);
     auto turtleid = boost::lexical_cast<int>(turtlename.back());
 
-    double amin, amax, rmin, rmax;
+    double amin=.0, amax=.0, rmin=.0, rmax=.0;
     nh.getParam("measurments", measurments);
   
     nh.getParam("angle_min", amin);
@@ -143,7 +144,7 @@ void Lasersim::wallsCallback(const sensor_msgs::PointCloudConstPtr &msg)
     //Dynamic array for output polar coordinates
     std::unique_ptr<geometry_msgs::Pose2D[]> outpoints(new geometry_msgs::Pose2D[measurments]);
 
-    ros::Time time_now = ros::Time::now();
+    const ros::Time time_now = ros::Time::now();
     
     try{
         tflistener.waitForTransform("map", turtlename + std::string("_")+lasername, time_now, ros::Duration(0.01));

@@ -33,7 +33,7 @@ namespace move_plugins {
         geometry_msgs::Twist twist;
         geometry_msgs::Pose2D outpoint;
 
-        auto time_now = ros::Time::now();
+        const auto time_now = ros::Time::now();
         dt = time_now.toSec();
 
         if (follow_frame.compare(msg->header.frame_id)){
