@@ -17,7 +17,7 @@ void Lasersim::TurtleListener::poseCallback(const geometry_msgs::PoseStampedCons
     geometry_msgs::Pose2D outpoint;
     geometry_msgs::PoseStamped transformedpose, mappose;
 
-    const ros::Time time_now = ros::Time::now();
+    const ros::Time time_now = msg->header.stamp;//ros::Time::now();
     
     std::vector<std::string> v;
     boost::split(v, msg->header.frame_id, [](char c){return c == '_';});
@@ -28,7 +28,7 @@ void Lasersim::TurtleListener::poseCallback(const geometry_msgs::PoseStampedCons
         parent.tflistener.waitForTransform( v.at(0)+std::string("_base_link"), 
             parent.turtlename + std::string("_")+parent.lasername, 
             time_now, 
-            ros::Duration(0.01));
+            ros::Duration(0.1));
     
     }catch(tf::TransformException& ex){
         ROS_WARN("WaitForTransform exception\"%s\" to \"%s\": %s",  
@@ -90,17 +90,17 @@ Lasersim::Lasersim(ros::NodeHandle &n): nh(n),
     nh.getParam("turtles_cnt", turtles_cnt);
     auto turtleid = boost::lexical_cast<int>(turtlename.back());
 
-    double amin=.0, amax=.0, rmin=.0, rmax=.0;
+    double amin, amax, rmin, rmax;
     nh.getParam("measurments", measurments);
   
-    nh.getParam("angle_min", amin);
+    nh.param<double>("angle_min", amin, -1.57);
     ls.angle_min = amin;
-    nh.getParam("angle_max", amax);
+    nh.param<double>("angle_max", amax, 1.57);
     ls.angle_max = amax;
     ls.angle_increment =(ls.angle_max - ls.angle_min)/measurments;
-    nh.getParam("range_min", rmin);
+    nh.param<double>("range_min", rmin, .01);
     ls.range_min = rmin;
-    nh.getParam("range_max", rmax);
+    nh.param<double>("range_max", rmax, 5.0);
     ls.range_max = rmax;
     ls.header.frame_id = turtlename + std::string("_")+lasername;
 
@@ -144,7 +144,7 @@ void Lasersim::wallsCallback(const sensor_msgs::PointCloudConstPtr &msg)
     //Dynamic array for output polar coordinates
     std::unique_ptr<geometry_msgs::Pose2D[]> outpoints(new geometry_msgs::Pose2D[measurments]);
 
-    const ros::Time time_now = ros::Time::now();
+    const ros::Time time_now = msg->header.stamp;//ros::Time::now();
     
     try{
         tflistener.waitForTransform("map", turtlename + std::string("_")+lasername, time_now, ros::Duration(0.01));

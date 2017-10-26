@@ -19,7 +19,7 @@ namespace move_plugins {
     {
         geometry_msgs::Twist twist;
         lastevent = e;
-        double as,ls;
+        double as=.0,ls=.0;
         nh.getParam("a_speed", as);
         nh.getParam("l_speed", ls);
 

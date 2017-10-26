@@ -17,10 +17,6 @@
 #include <pluginlib_turtle_move/twist.h>
 #include <pluginlib_turtle_move/follow.h>
 
-#define     POSE_X        (0)
-#define     POSE_Y        (1)
-#define     POSE_THETA    (2)
-
 #define     TIME_DT_TWIST    (0.9)
 #define     TIME_DT_ODOM     (0.01)
 #define     TIME_DT_FOLOW    (0.1)
@@ -80,7 +76,7 @@ private:
             OdomTimerListener& operator=(OdomTimerListener&&) = delete; //move assignment operator
             virtual void timerCallback(const ros::TimerEvent& e);
             void setLastPose(double x, double y, double theta){lastpose.x = x, lastpose.y = y, lastpose.theta = theta;}
-            void odominittransform();
+            void odomInitTransform();
             int getCount() const {return count;}
             geometry_msgs::Twist& getLatestTwist() {return latesttwist;} 
             void setLatestTwist(const geometry_msgs::Twist &twist){latesttwist = twist;}
@@ -129,7 +125,7 @@ private:
 
     tf::TransformListener tflistener;
     tf::TransformBroadcaster br;
-    
+
     //Library loader
     pluginlib::ClassLoader<move_base::BaseListener> move_loader;
 

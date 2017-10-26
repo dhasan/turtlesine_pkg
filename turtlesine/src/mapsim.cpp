@@ -5,7 +5,7 @@
 const std::string Mapsim::node_name = "mapsim";
 Mapsim::MapTimerListener::MapTimerListener(Mapsim &p, double dur, ros::NodeHandle &nh) : TimerBaseListener(p, dur, nh),
     pcpub(nh.advertise<sensor_msgs::PointCloud>("walls", 1000)){}
-    
+
 Mapsim::TimerBaseListener::TimerBaseListener(Mapsim &p, double dur, ros::NodeHandle &n) : nh(n), 
     parent(p), 
     duration(dur), 
@@ -38,7 +38,8 @@ Mapsim::Mapsim(ros::NodeHandle &n): nh(n),
 
 void Mapsim::MapTimerListener::timerCallback(const ros::TimerEvent& e) const
 {
-   pcpub.publish(parent.pc);   
+    parent.pc.header.stamp = e.current_real;
+    pcpub.publish(parent.pc);   
 }
 
 int main(int argc, char **argv)

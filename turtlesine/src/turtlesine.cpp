@@ -45,7 +45,7 @@ TurtleSine::BaseListener::BaseListener(TurtleSine &p, double dur, ros::NodeHandl
 
 TurtleSine::OdomTimerListener::OdomTimerListener(TurtleSine &p, double dur, ros::NodeHandle &nh) : BaseListener(p, dur, nh){}
 
-void TurtleSine::OdomTimerListener::odominittransform() {
+void TurtleSine::OdomTimerListener::odomInitTransform() {
      
     parent.br.sendTransform(tf::StampedTransform(tf::Transform(
         tf::Quaternion(.0, .0, .0, 1.0), tf::Vector3(0.0, 0.0, 0.0)), 
@@ -65,7 +65,7 @@ void TurtleSine::poseCallback(const turtlesim::PoseConstPtr& msg)
     tf::Quaternion q;
     q.setRPY(.0, .0, msg->theta);
     gpstransform.setRotation(q);
-    ros::Time time_now = ros::Time::now();
+    const ros::Time time_now = ros::Time::now();
     
     br.sendTransform(tf::StampedTransform(gpstransform, time_now, "map", turtlename+std::string("_odom")));
 
@@ -139,7 +139,7 @@ TurtleSine::TurtleSine(ros::NodeHandle &n) : nh(n) ,
         }
     }
     movelistener->start();
-    odomtimerlistener->odominittransform();
+    odomtimerlistener->odomInitTransform();
     /*
         Since both nodes are starting at the same from launcher sometimes turtlesine node starts before
         turtlesim_node, so we need to wait until turtlesim_node appear to use spawn service
@@ -187,7 +187,7 @@ void TurtleSine::OdomTimerListener::timerCallback(const ros::TimerEvent& e)
 
     tf::Transform transform_bs;
     tf::StampedTransform maptransform;
-    const ros::Time time_now = ros::Time::now();
+    const ros::Time time_now = e.current_real;
     auto lasttwist = getLatestTwist();
 
     auto vx = lasttwist.linear.x;
