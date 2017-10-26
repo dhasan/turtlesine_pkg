@@ -33,15 +33,15 @@ namespace move_plugins {
         geometry_msgs::Twist twist;
         geometry_msgs::Pose2D outpoint;
 
-        const auto time_now = msg->header.stamp;
-        dt = time_now.toSec();
+        const auto stamp = msg->header.stamp;
+        dt = stamp.toSec();
 
         if (follow_frame.compare(msg->header.frame_id)){
             return;
         }
 
         try{
-            tflistener.waitForTransform(turtlename+std::string("_base_link"), msg->header.frame_id, time_now, ros::Duration(0.1));
+            tflistener.waitForTransform(turtlename+std::string("_base_link"), msg->header.frame_id, stamp, ros::Duration(0.1));
         }catch(tf::TransformException& ex){
             ROS_WARN("WaitForTransform exception \"%s\" to \"%s\": %s",  
                 "map", 

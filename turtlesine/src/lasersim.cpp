@@ -17,7 +17,7 @@ void Lasersim::TurtleListener::poseCallback(const geometry_msgs::PoseStampedCons
     geometry_msgs::Pose2D outpoint;
     geometry_msgs::PoseStamped transformedpose, mappose;
 
-    const ros::Time time_now = msg->header.stamp;//ros::Time::now();
+    const ros::Time stamp = msg->header.stamp;
     
     std::vector<std::string> v;
     boost::split(v, msg->header.frame_id, [](char c){return c == '_';});
@@ -27,7 +27,7 @@ void Lasersim::TurtleListener::poseCallback(const geometry_msgs::PoseStampedCons
     try{
         parent.tflistener.waitForTransform( v.at(0)+std::string("_base_link"), 
             parent.turtlename + std::string("_")+parent.lasername, 
-            time_now, 
+            stamp, 
             ros::Duration(0.1));
     
     }catch(tf::TransformException& ex){
@@ -62,7 +62,7 @@ void Lasersim::TurtleListener::poseCallback(const geometry_msgs::PoseStampedCons
     parent.flags |= (1 << recivedturtleid);
   
     if (parent.flags == mask){
-        parent.ls.header.stamp = time_now;
+        parent.ls.header.stamp = stamp;
         parent.laserscan.publish(parent.ls);
         parent.resetlaser();          
     }
@@ -144,10 +144,10 @@ void Lasersim::wallsCallback(const sensor_msgs::PointCloudConstPtr &msg)
     //Dynamic array for output polar coordinates
     std::unique_ptr<geometry_msgs::Pose2D[]> outpoints(new geometry_msgs::Pose2D[measurments]);
 
-    const ros::Time time_now = msg->header.stamp;//ros::Time::now();
+    const ros::Time stamp = msg->header.stamp;
     
     try{
-        tflistener.waitForTransform("map", turtlename + std::string("_")+lasername, time_now, ros::Duration(0.01));
+        tflistener.waitForTransform("map", turtlename + std::string("_")+lasername, stamp, ros::Duration(0.01));
     }catch(tf::TransformException& ex){
         ROS_WARN("WaitForTransform exception \"%s\" to \"%s\": %s", 
             "map", std::string(turtlename + std::string("_")+lasername).c_str(), ex.what());
@@ -179,7 +179,7 @@ void Lasersim::wallsCallback(const sensor_msgs::PointCloudConstPtr &msg)
     auto  turtleid = boost::lexical_cast<int>(turtlename.back());
     auto mask = ((1 << (turtles_cnt + 1)) -1) & ~(1 << (turtleid));
     if (flags == mask){
-        ls.header.stamp = time_now;
+        ls.header.stamp = stamp;
         laserscan.publish(ls);
         resetlaser();
     }
